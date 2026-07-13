@@ -21,12 +21,18 @@ import logging
 # Hii inazuia Prophet isijaze terminal yako na meseji nyingi za kodi zisizo na lazima
 logging.getLogger('prophet').setLevel(logging.WARNING)
 
-conn = st.connection("gsheets", type=GSheetsConnection)
-
-
-mauzo_global = conn.read(worksheet="mauzo", ttl=0)
-stoo_global = conn.read(worksheet="stoo", ttl=0)
-orders_global = conn.read(worksheet="orders", ttl=0)
+try:
+    conn = st.connection("gsheets", type=GSheetsConnection)
+    mauzo_global = conn.read(worksheet="mauzo", ttl=0)
+    stoo_global = conn.read(worksheet="stoo", ttl=0)
+    orders_global = conn.read(worksheet="orders", ttl=0)
+except Exception as e:
+    st.error(f"Hitilafu ya Mtandao: {e}")
+    # Kutengeneza DataFrame tupu ili app isife kabisa chini
+    import pandas as pd
+    mauzo_global = pd.DataFrame()
+    stoo_global = pd.DataFrame()
+    orders_global = pd.DataFrame()
 
 df = mauzo_global.copy()
 df_stoo = stoo_global.copy()
