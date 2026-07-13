@@ -23,8 +23,8 @@ conn = st.connection("gsheets", type=GSheetsConnection)
 
 try:
     mauzo_global = conn.read(worksheet="mauzo", ttl=0)
-    stoo_global = conn.read(worksheet="stoo", ttl0)
-    orders_global = conn.read(worksheet="orders", ttl0)
+    stoo_global = conn.read(worksheet="stoo", ttl=0)
+    orders_global = conn.read(worksheet="orders", ttl=0)
 except Exception as e:
     st.error(f"Hitilafu ya Mtandao: {e}")
     mauzo_global = pd.DataFrame(columns=['Date', 'Category', 'Qty', 'Price', 'Total', 'Profit'])
