@@ -361,6 +361,8 @@ if check_password():
 # 2. Ujanja wa 'Session State' ili ku-update bei live
     if 'selected_category' not in st.session_state:
         st.session_state.selected_category = list(bei_kununua_dict.keys())[0]
+    else:
+        st.session_state.selected_category = "Tupu"
  
 # CHAGUA BIDHAA HAPA (Hii ita-refresh ukurasa na kubadilisha bei)
     new_category = st.sidebar.selectbox(
