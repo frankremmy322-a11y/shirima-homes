@@ -401,7 +401,7 @@ if check_password():
      st.markdown(f"💰 **Bei ya Stoo kwa {new_category}:**")
      st.code(f"TSh {current_price:,.0f}") 
     
-     new_date = st.date_input("Tarehe", value=dt.date.today(), key="date_input_field")
+     new_date = st.date_input("Tarehe", value=dt.date.today(2026, 7, 14))
      new_qty = st.number_input("Idadi (Qty)", min_value=1, step=1)
      new_total = st.number_input("Jumla ya Pesa uliyopokea (TZS)", min_value=0, step=5000)
     
