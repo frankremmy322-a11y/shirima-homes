@@ -401,7 +401,7 @@ if check_password():
      st.markdown(f"💰 **Bei ya Stoo kwa {new_category}:**")
      st.code(f"TSh {current_price:,.0f}") 
     
-     new_date = st.date_input("Tarehe", value=dt.date.today())
+     tarehe_mpya = st.date_input("Tarehe", value=dt.date.today(), key="tarehe_input_2026_07_14")
      new_qty = st.number_input("Idadi (Qty)", min_value=1, step=1)
      new_total = st.number_input("Jumla ya Pesa uliyopokea (TZS)", min_value=0, step=5000)
     
@@ -412,7 +412,7 @@ if check_password():
        unit_price = int(new_total / new_qty) if new_qty > 0 else 0
         
        new_row = pd.DataFrame([[
-            new_date.strftime("%Y-%m-%d"), new_category, new_qty, 
+            tarehe_mpya.strftime("%Y-%m-%d"), new_category, new_qty, 
             unit_price, new_total, profit_made
         ]], columns=['Date', 'Category', 'Qty', 'Unit_Price', 'Total', 'Profit'])
         
