@@ -11,7 +11,7 @@ from datetime import datetime, timedelta
 from prophet import Prophet
 from streamlit_gsheets import GSheetsConnection
 import logging
-
+import datetime as dt
 
 
 
@@ -401,7 +401,7 @@ if check_password():
      st.markdown(f"💰 **Bei ya Stoo kwa {new_category}:**")
      st.code(f"TSh {current_price:,.0f}") 
     
-     new_date = st.date_input("Tarehe", value=datetime.date.today())
+     new_date = st.date_input("Tarehe", value=dt.date.today())
      new_qty = st.number_input("Idadi (Qty)", min_value=1, step=1)
      new_total = st.number_input("Jumla ya Pesa uliyopokea (TZS)", min_value=0, step=5000)
     
