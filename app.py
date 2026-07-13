@@ -1,453 +1,289 @@
 import streamlit as st
 import pandas as pd
 import numpy as np
-from sklearn.linear_model import LinearRegression
 import matplotlib.pyplot as plt
 import datetime
-from datetime import timedelta
-from datetime import datetime
+from datetime import timedelta, datetime
 import base64
 from fpdf import FPDF
-from datetime import datetime, timedelta
-
+from streamlit_gsheets import GSheetsConnection
 from prophet import Prophet
 import logging
 
-# Hii inazuia Prophet isijaze terminal yako na meseji nyingi za kodi zisizo na lazima
+# Mipangilio ya Prophet kuzuia meseji zisizo na lazima
 logging.getLogger('prophet').setLevel(logging.WARNING)
 
+# =====================================================================
+# 1. PAKIA DATA MOJA KWA MOJA KUTOKA GOOGLE SHEETS (GLOBAL LOADING)
+# =====================================================================
+conn = st.connection("gsheets", type=GSheetsConnection)
 
+try:
+    mauzo_global = conn.read(worksheet="mauzo")
+    stoo_global = conn.read(worksheet="stoo")
+    orders_global = conn.read(worksheet="orders")
+except Exception as e:
+    st.error(f"Hitilafu ya Mtandao kwenye Sheets: {e}")
+    mauzo_global = pd.DataFrame()
+    stoo_global = pd.DataFrame()
+    orders_global = pd.DataFrame()
 
-def piga_utabiri_wa_faida(df, siku_za_mbele):
+# Kopi za data kutumika kwenye app nzima bila kusoma faili upya
+df = mauzo_global.copy()
+df_stoo = stoo_global.copy()
+df_orders = orders_global.copy()
+
+# =====================================================================
+# 2. FUNCTIONS / MKATABA WA KAZI ZA DASHBOARD
+# =====================================================================
+
+def piga_utabiri_wa_faida(df_data, siku_za_mbele):
     try:
-        df_p = df[['Date', 'Profit']].copy()
+        df_p = df_data[['Date', 'Profit']].copy()
         df_p.columns = ['ds', 'y']
         df_p['ds'] = pd.to_datetime(df_p['ds'])
-        from prophet import Prophet
         m = Prophet(daily_seasonality=True).fit(df_p)
         future = m.make_future_dataframe(periods=siku_za_mbele)
         forecast = m.predict(future)
-        return forecast # Function inaishia hapa pekee!
+        return forecast
     except Exception as e:
         return None
 
-
-def piga_utabiri_wa_mauzo(df, siku_za_mbele):
+def piga_utabiri_wa_mauzo(df_data, siku_za_mbele):
     try:
-        # Prophet inataka column ziitwe 'ds' na 'y'
-        df_prophet = df[['Date', 'Total']].copy()
+        df_prophet = df_data[['Date', 'Total']].copy()
         df_prophet.columns = ['ds', 'y']
-        
-        # Hakikisha tarehe zipo kwenye format sahihi
         df_prophet['ds'] = pd.to_datetime(df_prophet['ds'])
-        
-        # Anzisha na ufunze model
         m = Prophet(changepoint_prior_scale=0.05, daily_seasonality=False)
         m.fit(df_prophet)
-        
-        # Tengeneza tarehe za mbeleni
         future = m.make_future_dataframe(periods=siku_za_mbele)
         forecast = m.predict(future)
-        
         return forecast
     except Exception as e:
         st.error(f"Error kwenye Prophet: {e}")
         return None
-    
 
 def image_to_base64(image_path):
-   with open(image_path, "rb")as image_file:
-      return base64.b64encode(image_file.read()).decode()
-      
+    try:
+        with open(image_path, "rb") as image_file:
+            return base64.b64encode(image_file.read()).decode()
+    except:
+        return ""
 
 def password_entered():
-   if st.session_state["password"]=="shirima2026":
-    st.session_state["password_correct"]=True
-    del st.session_state["password"]
-   else:
-    st.session_state["password_correct"]=False
+    if st.session_state["password"] == "shirima2026":
+        st.session_state["password_correct"] = True
+        del st.session_state["password"]
+    else:
+        st.session_state["password_correct"] = False
 
 def save_inventory():
-   data = []
-   for bidhaa,kiasi in st.session_state.inventory_awal.items():
-      bei = st.session_state.get('prices',{}).get(bidhaa,0)
-      data.append({"Category":bidhaa,"Total_Stock":kiasi,"Buying_Price":bei})
-      new_df = pd.DataFrame(data)
-      new_df.to_csv('stoo_data.csv',index=False)
+    # Inasaga inventory ya sasa na kuisukuma Google Sheets
+    data = []
+    for bidhaa, kiasi in st.session_state.inventory_awal.items():
+        bei = st.session_state.get('prices', {}).get(bidhaa, 0)
+        data.append({"Category": bidhaa, "Total_Stock": kiasi, "Buying_Price": bei})
+    new_df = pd.DataFrame(data)
+    conn.update(worksheet="stoo", data=new_df)
 
 def load_inventory():
-   try:
-      df = pd.read_csv('stoo_data.csv')
-      return df
-   except FileNotFoundError:
-      return pd.DataFrame(columns=['Category','Total_Stock','Buying_Price'])
+    return stoo_global.copy() if not stoo_global.empty else pd.DataFrame(columns=['Category', 'Total_Stock', 'Buying_Price'])
    
 def style_status(val):
-   if val=='Pending':
-      return'color:#ff4b4b;font-weight:bold;'
-   elif val=='Completed':
-      return'color:#00ff00;font-weight:bold;'
-   elif val=='Canceled':
-      return'color:#00f2ff;font-weight:bold;'
-   return
-   
+    if val == 'Pending':
+        return 'color:#ff4b4b;font-weight:bold;'
+    elif val == 'Completed':
+        return 'color:#00ff00;font-weight:bold;'
+    elif val == 'Canceled':
+        return 'color:#00f2ff;font-weight:bold;'
+    return
 
-
-#
 def calculate_inventory_value():
-   
-   try:
-        #1. Soma data mpya yenye Buying_Price
-        df_stoo = pd.read_csv('stoo_data.csv')
-        df_mauzo = pd.read_csv('mauzo_data.csv')
+    try:
+        # Tunatumia data zilizopakiwa juu badala ya pd.read_csv
+        df_s = stoo_global.copy()
+        df_m = mauzo_global.copy()
          
-        #soma data hakikisha majina ya bidhaa yanafanana
-        df_stoo['Category']=df_stoo['Category'].str.strip().str.lower()
-        df_mauzo['Category']=df_mauzo['Category'].str.strip().str.lower()
+        df_s['Category'] = df_s['Category'].str.strip().str.lower()
+        df_m['Category'] = df_m['Category'].str.strip().str.lower()
         
-        #step1 temgeneza zilizounzwa kwa kupiga jumla ya mauzo
-        mauzo_sum=df_mauzo.groupby('Category')['Qty'].sum().reset_index()
-        mauzo_sum.columns=['Category','Zilizouzwa']
+        mauzo_sum = df_m.groupby('Category')['Qty'].sum().reset_index()
+        mauzo_sum.columns = ['Category', 'Zilizouzwa']
 
-        #tengeneza zilizobaki kwey csv hatunsa tunaipata apa
-        df_final=pd.merge(df_stoo,mauzo_sum,on='Category',how='left').fillna(0)
-        df_final['Zilizobaki']=df_final['Total_Stock']-df_final['Zilizouzwa']
-        
-        #piga hesabu ya thamani halisi
-        df_final['Actual_Value']=df_final['Zilizobaki']*df_final['Buying_Price']
+        df_final = pd.merge(df_s, mauzo_sum, on='Category', how='left').fillna(0)
+        df_final['Zilizobaki'] = df_final['Total_Stock'] - df_final['Zilizouzwa']
+        df_final['Actual_Value'] = df_final['Zilizobaki'] * df_final['Buying_Price']
       
-        # 3. Rudisha jumla kuu
-        thamani_kuu = df_final['Actual_Value'].sum()
-        idadi_kuu = df_final['Zilizobaki'].sum()
-        return thamani_kuu,idadi_kuu
-   except Exception as e:
+        return df_final['Actual_Value'].sum(), df_final['Zilizobaki'].sum()
+    except Exception as e:
         print(f"Error kwenye Thamani: {e}")
-   return 0
+    return 0, 0
 
-pesa_stoo,vitu_stoo=calculate_inventory_value()
+pesa_stoo, vitu_stoo = calculate_inventory_value()
   
-    
 def check_password():
-   if "welcomed" not in st.session_state:
-      st.session_state["welcomed"]=False
-   #ARVISI
-   st.markdown("""
-      
-      
-      <style>
-      @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap');
-      
-               
-      /*rangi ya background ya ukurasa wote wa log in*/
-       .stApp { background-color: #0e1117; }
-      }
-      }
-      /*Box la password*/
-      div[data-baseweb="input"]{
-         boarder:2px solid #00f2ff !important;
-         boarder-radius:10px;
-         box-shadow:none !important;
-         input[type="password"]{box-shadow:0 0 15px #00f2ff !important;}
-         
-         
-         
-      }
-      /*Maandishi ya jarvis*/
-      .jarvis-title{
-         color:#002ff;
-         font-family:'Courier New',Courier,monospace
-         text-align:left !important;
-         margin-left:0px !important;
-         padding-left:0px !important;
-         margin-bottom;10px;
-         text-shadow:2px 2px 10px #002ff;
-         font-size:40px;
-         font-weight:bold;
-         letter-spacing: 5px;
-         text-transform: uppercase;
-         text-shadow:0 0 5px #00f2ff,0 0 10px #00f2ff,0 0 20px #00f2ff;
-         margin-left:0px !important;
-       
-        
-       
-               
-      }
-               
-       
-       
-               
-      /*nembo ya kali linuc*/
-      .kali-container{
-         display:block;
-         margin-left:auto;
-         margin-rigth:auto;
-         width:300px !important;
-         height:auto !important;
-         opacity:0.9;
-         filter:invert(1)brightness(1.2)drop-shadow(0 0 15px #00f2ff);
-         text-align:centre;
-         margin-bottom:20px;
-      }
-      
-      .stTextInput label p{
-         font-family: 'Orbitron',sans-serif !important;
-         color: #00f2ff !important;
-         letter-spacing:2px;
-         letter-shadow:0 0 5px #00f2ff;
-         text-transform:uppercase;
-      }
-      
+    if "welcomed" not in st.session_state:
+        st.session_state["welcomed"] = False
     
-      
-               
-      </style>
-      """,unsafe_allow_html=True)
-   
-   
-  
-
-   if "password_correct" not in st.session_state:
-  
-      st.info("System Locked:Waiting for Athorization From Frank Shirima")
-      st.text_input("ENTER ACCESSS CODE",type="password",on_change=password_entered,key="password")
-      col1, col2, col3=st.columns([1,2,1])
-      with col2:
-     
-        st.markdown('<div class="kali-container"><img src="data:image/png;base64,{}"></div>'.format(image_to_base64("kali.png")),unsafe_allow_html=True)
-        st.markdown('<p class="jarvis-title"style="font-size:20px; margin-top:10px; ">CYBERGATES LABS</p>',unsafe_allow_html=True)
-      
-      return False
-
-   elif not st.session_state['password_correct']:
-     st.markdown("""
-               <p style="
-               color:#ff0000;
-               font-family:'Orbitron',sans-serif;
-               text-align:centre;
-               text-shadow:0 0 15px #ff0000;
-               font-size:18px;
-               font-weight:bold;
-               letter-spacing:5px;
-               margin-top:20px;
-               ">
-                 ACCESS DENIED
-               </p>
-               
-                """,unsafe_allow_html=True)
-     st.text_input("ENTER ACCESS CODE", type="password", on_change=password_entered,key="password")
-     st.error("Authetication Failed:Security Breach Protocol Initilized")
-     return False
-   else:
-    if st.session_state["password_correct"] and not st.session_state["welcomed"]:
-
-      st.balloons()
-      st.toast("Access Granted Welcome Back, Mr Shrima.")
-      st.session_state["welcomed"] = True
-    
-   return True
-
-
-if check_password():
- 
- 
-   
-  
-
-
- st.set_page_config(page_title="KWA SHIRIMA AI", layout="wide")
- st.title("📊 Prophet Dashboard  - KWA SHIRIMA Store")
-
-# 1. Pakia Dat
- df = pd.read_csv('mauzo_data.csv')
- try:
-   # 1. Hifadhi inventory kwenye session_state ili isifutike
-    if 'inventory_awal' not in st.session_state:
-     st.session_state.inventory_awal = {
-        'Mapazia': 1000,
-        'Saa za Ukutani': 950,
-        'Mazulia': 900,
-        'Taa za Kupamba': 850,
-        'Vases': 920
+    st.markdown("""
+    <style>
+    @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap');
+    .stApp { background-color: #0e1117; }
+    div[data-baseweb="input"]{
+        border:2px solid #00f2ff !important;
+        border-radius:10px;
+        box-shadow:none !important;
     }
-# 2. Sasa hapa ndipo unapopiga hesabu (Hii iwe chini ya session state ya juu)
+    .jarvis-title{
+        color:#00f2ff;
+        font-family:'Courier New',Courier,monospace;
+        text-shadow:0 0 5px #00f2ff,0 0 10px #00f2ff;
+        font-size:40px;
+        font-weight:bold;
+        letter-spacing: 5px;
+        text-transform: uppercase;
+    }
+    .kali-container{
+        display:block;
+        margin-left:auto;
+        margin-right:auto;
+        width:300px !important;
+        opacity:0.9;
+        filter:invert(1) brightness(1.2) drop-shadow(0 0 15px #00f2ff);
+        text-align:center;
+    }
+    </style>
+    """, unsafe_allow_html=True)
 
-    # 1. Geuza session state kuwa DataFrame (Hakikisha jina la column ni 'Total_Stock')
+    if "password_correct" not in st.session_state:
+        st.info("System Locked: Waiting for Authorization From Frank Shirima")
+        st.text_input("ENTER ACCESS CODE", type="password", on_change=password_entered, key="password")
+        col1, col2, col3 = st.columns([1, 2, 1])
+        with col2:
+            st.markdown('<div class="kali-container"><img src="data:image/png;base64,{}"></div>'.format(image_to_base64("kali.png")), unsafe_allow_html=True)
+            st.markdown('<p class="jarvis-title" style="font-size:20px; text-align:center;">CYBERGATES LABS</p>', unsafe_allow_html=True)
+        return False
+
+    elif not st.session_state['password_correct']:
+        st.markdown('<p style="color:#ff0000; font-family:\'Orbitron\',sans-serif; text-align:center; text-shadow:0 0 15px #ff0000; font-size:18px; font-weight:bold; letter-spacing:5px;">ACCESS DENIED</p>', unsafe_allow_html=True)
+        st.text_input("ENTER ACCESS CODE", type="password", on_change=password_entered, key="password")
+        st.error("Authentication Failed: Security Breach Protocol Initialized")
+        return False
+    else:
+        if st.session_state["password_correct"] and not st.session_state["welcomed"]:
+            st.balloons()
+            st.toast("Access Granted. Welcome Back, Mr Shirima.")
+            st.session_state["welcomed"] = True
+        return True
+
+# =====================================================================
+# 3. UKURASA MKUU WA DASHBOARD (MIFUMO YOTE INAPORUN)
+# =====================================================================
+if check_password():
+    st.set_page_config(page_title="KWA SHIRIMA AI", layout="wide")
+    st.title("📊 Prophet Dashboard - KWA SHIRIMA Store")
+
+    # Mfumo wa Session State wa stoo ya ndani ya app
+    if 'inventory_awal' not in st.session_state:
+        st.session_state.inventory_awal = {
+            'Mapazia': 1000, 'Saa za Ukutani': 950, 'Mazulia': 900, 'Taa za Kupamba': 850, 'Vases': 920
+        }
+
     df_stock = pd.DataFrame(list(st.session_state.inventory_awal.items()), columns=['Category', 'Total_Stock'])
-
-# 2. Piga hesabu ya mauzo (Tumia reset_index TU, usiweke .to_dict())
     mauzo_kwa_bidhaa = df.groupby('Category')['Qty'].sum().reset_index()
-
-# 3. Unganisha meza mbili (Hapa sasa itakubali bila error)
     df_hali_ya_stoo = pd.merge(df_stock, mauzo_kwa_bidhaa, on='Category', how='left').fillna(0)
-
-# 4. Piga hesabu ya stock iliyobaki
     df_hali_ya_stoo['iliyobaki'] = df_hali_ya_stoo['Total_Stock'] - df_hali_ya_stoo['Qty']
       
     df['Date'] = pd.to_datetime(df['Date'])
-    
-    # Group data kwa siku kwa ajili ya prediction
     daily_sales = df.groupby('Date')['Total'].sum().reset_index()
-    daily_sales['Day_Ordinal'] = daily_sales['Date'].apply(lambda x: x.toordinal())
-
-    # 1. Maandalizi ya tarehe
+    
+    # Logic ya tarehe
     df['Date'] = pd.to_datetime(df['Date']).dt.date
-    #leo_halisi = df['Date'].max()
     leo_halisi = datetime.now().date()
 
-     # 2. Dropdown ya kuchagua kipindi
     pamoja = st.selectbox("Linganisha Mauzo ya:", ["Siku (Leo vs Jana)", "Wiki (Hii vs Iliyopita)", "Mwezi (Huu vs Uliopita)"])
 
-    
-# 3. Logic ya kulinganisha
     if pamoja == "Siku (Leo vs Jana)":
-       k1_start, k1_end = leo_halisi, leo_halisi
-       k2_start, k2_end = leo_halisi - timedelta(days=1), leo_halisi - timedelta(days=1)
-       label1, label2 = "Leo", "Jana"
-
-      
+        k1_start, k1_end = leo_halisi, leo_halisi
+        k2_start, k2_end = leo_halisi - timedelta(days=1), leo_halisi - timedelta(days=1)
+        label1, label2 = "Leo", "Jana"
     elif pamoja == "Wiki (Hii vs Iliyopita)":
-       k1_start, k1_end = leo_halisi - timedelta(days=6), leo_halisi
-       k2_start, k2_end = k1_start - timedelta(days=7), k1_start - timedelta(days=1)
-       label1, label2 = "Wiki Hii", "Wiki Iliyopita"
+        k1_start, k1_end = leo_halisi - timedelta(days=6), leo_halisi
+        k2_start, k2_end = k1_start - timedelta(days=7), k1_start - timedelta(days=1)
+        label1, label2 = "Wiki Hii", "Wiki Iliyopita"
+    else:
+        k1_start = leo_halisi.replace(day=1)
+        k1_end = leo_halisi
+        punda = k1_start - timedelta(days=1) 
+        k2_start = punda.replace(day=1)
+        k2_end = punda
+        label1, label2 = "Mwezi Huu", "Mwezi Uliopita"
 
-    
-    else: # Mwezi (Kalenda)
-    # Mwezi huu: Kuanzia tarehe 1 ya mwezi huu mpaka leo
-       k1_start = leo_halisi.replace(day=1)
-       k1_end = leo_halisi
-    
-    # Mwezi uliopita: Siku ya mwisho ya mwezi uliopita
-       punda = k1_start - timedelta(days=1) 
-    # Kuanzia tarehe 1 ya mwezi uliopita mpaka mwisho wake
-       k2_start = punda.replace(day=1)
-       k2_end = punda
-    
-       label1, label2 = "Mwezi Huu ", "Mwezi Uliopita "
-
-
-    # 4. Piga hesabu za jumla
     m1 = df[(df['Date'] >= k1_start) & (df['Date'] <= k1_end)]['Total'].sum()
     m2 = df[(df['Date'] >= k2_start) & (df['Date'] <= k2_end)]['Total'].sum()
     diff = m1 - m2
 
-
-    # 2. Side Bar ya Utabiri
     with st.sidebar:
-     st.header("⚙️ Mipangilio ya AI")
-     siku_za_mbele = st.slider("Chagua Siku za Kutabiri Mauzo:", 7, 90, 30)
+        st.header("⚙️ Mipangilio ya AI")
+        siku_za_mbele = st.slider("Chagua Siku za Kutabiri Mauzo:", 7, 90, 30)
 
     st.sidebar.divider()
  
-    # 1. Pakia dictionary ya bei
-    df_stoo = pd.read_csv('stoo_data.csv')
+    # Kutengeneza dictionary ya bei kutoka kwenye data ya Google Sheets
     bei_kununua_dict = dict(zip(df_stoo['Category'], df_stoo['Buying_Price']))
 
     st.sidebar.header("📝 Ingiza Mauzo")
-
-# 2. Ujanja wa 'Session State' ili ku-update bei live
     if 'selected_category' not in st.session_state:
-        st.session_state.selected_category = list(bei_kununua_dict.keys())[0]
+        st.session_state.selected_category = list(bei_kununua_dict.keys())[0] if bei_kununua_dict else ""
  
-# CHAGUA BIDHAA HAPA (Hii ita-refresh ukurasa na kubadilisha bei)
-    new_category = st.sidebar.selectbox(
-    "Aina ya Bidhaa", 
-    options=list(bei_kununua_dict.keys()),
-    key="cat_selector"
-    )
+    new_category = st.sidebar.selectbox("Aina ya Bidhaa", options=list(bei_kununua_dict.keys()), key="cat_selector")
 
-# 3. ANZA FORM (Sasa bei itaonekana humu ndani ikiwa imeshabadilika)
     with st.sidebar.form("sales_form", clear_on_submit=True):
-    # Tunachukua bei kulingana na ulichochagua hapo juu
-     current_price = bei_kununua_dict.get(new_category, 0)
+        current_price = bei_kununua_dict.get(new_category, 0)
+        st.markdown(f"💰 **Bei ya Stoo kwa {new_category}:**")
+        st.code(f"TSh {current_price:,.0f}") 
     
-    # HAPA NDIPO INAPOONEKANA NDANI YA BOX KABLA YA SUBMIT
-     st.markdown(f"💰 **Bei ya Stoo kwa {new_category}:**")
-     st.code(f"TSh {current_price:,.0f}") 
-    
-     new_date = st.date_input("Tarehe", datetime.now())
-     new_qty = st.number_input("Idadi (Qty)", min_value=1, step=1)
-     new_total = st.number_input("Jumla ya Pesa uliyopokea (TZS)", min_value=0, step=5000)
-    
-     submitted = st.form_submit_button("Hifadhi Mauzo")
+        new_date = st.date_input("Tarehe", datetime.now())
+        new_qty = st.number_input("Idadi (Qty)", min_value=1, step=1)
+        new_total = st.number_input("Jumla ya Pesa uliyopokea (TZS)", min_value=0, step=5000)
+        submitted = st.form_submit_button("Hifadhi Mauzo")
     
     if submitted:
-       profit_made = new_total - (current_price * new_qty)
-       unit_price = int(new_total / new_qty) if new_qty > 0 else 0
+        profit_made = new_total - (current_price * new_qty)
+        unit_price = int(new_total / new_qty) if new_qty > 0 else 0
         
-       new_row = pd.DataFrame([[
-            new_date.strftime("%Y-%m-%d"), new_category, new_qty, 
-            unit_price, new_total, profit_made
+        new_row = pd.DataFrame([[
+            new_date.strftime("%Y-%m-%d"), new_category, new_qty, unit_price, new_total, profit_made
         ]], columns=['Date', 'Category', 'Qty', 'Price', 'Total', 'Profit'])
         
-       new_row.to_csv('mauzo_data.csv', mode='a', index=False, header=False)
-       st.success(f"Imesave! Faida: {profit_made:,.0f}")
-       st.rerun()
-        
-
-    # 2. Onyesha kwenye Sidebar (Pemben Kabisa)
-    st.sidebar.markdown("---") # Mstari wa kutenganisha
-    st.sidebar.subheader("💼 Duka Portfolio")
-    st.sidebar.write("Thamani ya stoo(Total)")
-    st.sidebar.subheader(f"{pesa_stoo:,.0f}")
-
-    st.divider()
-    st.sidebar.write("idadi ya bidhaa(Total)")
-    st.sidebar.subheader(f"{vitu_stoo:,.0f}Pcs")
-
-     # Piga hesabu ya thamani ya sasa hivi
-    total_value = calculate_inventory_value()
+        # Sukuma mauzo mapya kwenda Google Sheets
+        df_mauzo_updated = pd.concat([mauzo_global, new_row], ignore_index=True)
+        conn.update(worksheet="mauzo", data=df_mauzo_updated)
+        st.success(f"Imesave Google Sheets! Faida: {profit_made:,.0f}")
+        st.rerun()
 
     st.sidebar.markdown("---")
+    st.sidebar.subheader("💼 Duka Portfolio")
+    st.sidebar.write("Thamani ya stoo (Total)")
+    st.sidebar.subheader(f"{pesa_stoo:,.0f} TZS")
+    st.sidebar.write("Idadi ya bidhaa (Total)")
+    st.sidebar.subheader(f"{vitu_stoo:,.0f} Pcs")
 
-
-
-
-
-
-
-   # --- Hesabu za Wastani (Sidebar) ---
-# Tunatafuta wastani wa mwezi huu uliopo kwenye CSV
     mwezi_huu_data = df[df['Date'] >= (leo_halisi - timedelta(days=30))]
-    wastani_kwa_siku = mwezi_huu_data.groupby('Date')['Total'].sum().mean()
+    wastani_kwa_siku = mwezi_huu_data.groupby('Date')['Total'].sum().mean() if not mwezi_huu_data.empty else 0
 
-    st.sidebar.divider() # Mstari wa kutenganisha
-    st.sidebar.subheader("Muhtasari wa Haraka")
-
-# Onyesha wastani kwa maandishi madogo au metric ndogo
+    st.sidebar.divider()
     st.sidebar.metric(label="Wastani wa Mauzo/Siku", value=f"{wastani_kwa_siku:,.0f} TZS")
 
-
-
-
-
-
-   
-
-# Unaweza pia kuweka lengo la mwezi hapa kidogo
     st.sidebar.divider()
     st.sidebar.subheader("🎯 Target Control")
-    
-    # Hapa sasa unaset lengo mwenyewe kwenye Dashboard!
-    lengo_la_mwezi = st.sidebar.number_input("Weka Lengo la Mwezi (TZS)", value=900000, step=1000000)
-    # 2. Piga hesabu ya asilimia (Hapa ndipo variable inatengenezwa sasa)
-    # Hakikisha 'm1' imeshapigiwa hesabu juu, kama bado tumia: m1 = df['Total'].sum()
-    asilimia_ya_lengo = (m1 / lengo_la_mwezi) * 100
-    asilimia_ya_lengo_display = min(asilimia_ya_lengo, 100.0)
-    
-    # Piga hesabu ya asilimia
-    # Chagua rangi kulingana na maendeleo
+    lengo_la_mwezi = st.sidebar.number_input("Weka Lengo la Mwezi (TZS)", value=900000, step=100000)
+    asilimia_ya_lengo = (m1 / lengo_la_mwezi) * 100 if lengo_la_mwezi > 0 else 0
     bar_color = "#ff0000" if asilimia_ya_lengo < 50 else "#ffaa00" if asilimia_ya_lengo < 80 else "#00ff00"
     
     st.sidebar.markdown(f"""
         <div style="width: 100%; background-color: #262730; border-radius: 20px; border: 1px solid #444;">
-            <div style="
-                width: {asilimia_ya_lengo}%; 
-                background: linear-gradient(90deg, {bar_color}, #ffffff); 
-                height: 20px; 
-                border-radius: 20px; 
-                box-shadow: 0 0 15px {bar_color};
-                transition: width 1s ease-in-out;
-            "></div>
+            <div style="width: {min(asilimia_ya_lengo, 100.0)}%; background: linear-gradient(90deg, {bar_color}, #ffffff); height: 20px; border-radius: 20px; box-shadow: 0 0 15px {bar_color};"></div>
         </div>
         <p style="text-align: center; font-family: 'Orbitron', sans-serif; color: {bar_color}; font-size: 18px; margin-top: 5px;">
             {asilimia_ya_lengo:.1f}% LOADED
@@ -460,717 +296,396 @@ if check_password():
     else:
         st.sidebar.success(f"🔥 SYSTEM OPTIMIZED: Umevuka lengo kwa **{abs(bado_kiasi):,.0f} TZS**!")
     
-
-       
-    #hpa kiwango ch chini
-    
-# 3. Tengeneza ripoti ya Low Stock
+    # --- Low Stock Alerts ---
     st.sidebar.divider()
     st.sidebar.subheader("🚀 Low Stock Alerts")
 
-    def get_low_stock_data():
-        df_stoo = pd.read_csv('stoo_data.csv')
-        df_mauzo= pd.read_csv('mauzo_data.csv')
+    df_stoo_clean = df_stoo.copy()
+    df_mauzo_clean = df.copy()
+    df_stoo_clean['Category'] = df_stoo_clean['Category'].astype(str).str.strip()
+    df_mauzo_clean['Category'] = df_mauzo_clean['Category'].astype(str).str.strip()
 
-        #safisha data
-        df_stoo['Category']=df_stoo['Category'].astype(str).str.strip()
-        df_mauzo['Category']=df_mauzo['Category'].astype(str).str.strip()
+    mauzo_sum_alert = df_mauzo_clean.groupby('Category')['Qty'].sum().reset_index()
+    current_hali = pd.merge(df_stoo_clean, mauzo_sum_alert, on='Category', how='left').fillna(0)
+    current_hali['iliyobaki'] = current_hali['Total_Stock'] - current_hali['Qty']
 
-        #piga hesabu ya mauzo
-        mauzo_sum=df_mauzo.groupby('Category')['Qty'].sum().reset_index()
-
-        #unganisha na hesabun iliyobaki
-        df_final=pd.merge(df_stoo,mauzo_sum,on='Category',how='left').fillna(0)
-        df_final['iliyobaki']=df_final['Total_Stock']-df_final['Qty']
-
-        return df_final
-    
-    #pata data sas hiv
-    current_hali = get_low_stock_data()
-
-    #weka kikom chako
     LOW_STOCK_LIMIT = 10
+    low_stock_items = current_hali[current_hali['iliyobaki'] <= LOW_STOCK_LIMIT]
 
-    #chuja bihdaa
-    low_stock_items = current_hali[current_hali['iliyobaki']<=LOW_STOCK_LIMIT]
-
-
-
-
-# 3. Kama kuna bidhaa, toa onyo (Alert)
     if not low_stock_items.empty:
-     for _,row in low_stock_items.iterrows():
-        baki = int(row['iliyobaki'])
-        bidhaa = row['Category']
-
-        if baki <=0:
-         st.sidebar.error(f"⚠️ **{bidhaa}** IMEKWISHA!:{baki}")
-        else:
-         st.sidebar.error(f"⚠️**{bidhaa}** imebaki:{baki}")
+        for _, row in low_stock_items.iterrows():
+            baki = int(row['iliyobaki'])
+            bidhaa = row['Category']
+            if baki <= 0:
+                st.sidebar.error(f"⚠️ **{bidhaa}** IMEKWISHA!: {baki}")
+            else:
+                st.sidebar.error(f"⚠️ **{bidhaa}** imebaki: {baki}")
     else:
-      st.sidebar.success("✅ Bidhaa zote zipo za kutosha!") 
+        st.sidebar.success("✅ Bidhaa zote zipo za kutosha!") 
 
-   
-  
-    
+    # --- Ongeza Mzigo Mpya ---
     st.sidebar.divider()
     st.sidebar.subheader("📦 Ongeza Mzigo Mpya")
-    
-    #soma fail la stoo kupsta list kamil ya bidhaa
-    df_stoo_list = pd.read_csv('stoo_data.csv')
     list_ya_bidhaa = df_stoo['Category'].unique().tolist()
 
-# 1. Tengeneza Form ya kuingiza mzigo
     with st.sidebar.form("stock_form"):
-      bidhaa_mpya = st.selectbox("Chagua Bidhaa",list_ya_bidhaa)
-      kiasi_kipya = st.number_input("idadi",min_value=1)
-      submit_stock = st.form_submit_button("Hifadhi mzigo")
+        bidhaa_mpya = st.selectbox("Chagua Bidhaa", list_ya_bidhaa)
+        kiasi_kipya = st.number_input("Idadi", min_value=1)
+        submit_stock = st.form_submit_button("Hifadhi mzigo")
     
     if submit_stock:
-        # 1. Soma faili la stoo
-        df_stoo = pd.read_csv('stoo_data.csv')
-        
-        # 2. Tafuta mstari wa bidhaa
         mask = df_stoo['Category'] == bidhaa_mpya
-        
         if mask.any():
-            # A. Pata idadi ya sasa (Hakikisha ni namba)
             idadi_ya_sasa = int(pd.to_numeric(df_stoo.loc[mask, 'Total_Stock']).iloc[0])
             idadi_mpya = idadi_ya_sasa + int(kiasi_kipya)
-            
-            # B. SASISHA CSV MOJA KWA MOJA (Usiguse bei hapa ili isirudi 0)
             df_stoo.loc[mask, 'Total_Stock'] = idadi_mpya
-            df_stoo.to_csv('stoo_data.csv', index=False)
             
-            # C. SASISHA SESSION STATE ILI GRAPH IONYESHE NAMBA MPYA
+            # Update kule Google Sheets
+            conn.update(worksheet="stoo", data=df_stoo)
+            
             if 'inventory_awal' in st.session_state:
                 st.session_state.inventory_awal[bidhaa_mpya] = idadi_mpya
-            
-            st.success(f"✅ Imefanikiwa! {bidhaa_mpya} sasa zipo {idadi_mpya}")
+            st.success(f"✅ Imefanikiwa Google Sheets! {bidhaa_mpya} sasa zipo {idadi_mpya}")
             st.rerun()
-        else:
-            st.error("Bidhaa haijapatikana!")
 
+    # --- Ongeza Bidhaa Mpya Kabisa ---
     st.sidebar.divider()
     st.sidebar.subheader("🆕 Ongeza Bidhaa Mpya Kabisa")
 
-# 1. Form ya kuingiza bidhaa ambayo haipo kwenye list
-    
-
     with st.sidebar.form("new_item_form", clear_on_submit=True):
-     jina_la_bidhaa = st.text_input("Andika jina la bidhaa ")
-     idadi_ya_mwanzo = st.number_input("Idadi ya mwanzo", min_value=1)
-     bei_ya_kununulia = st.number_input("Bei ya kununulia(moja)",min_value=1)
-     submit_new = st.form_submit_button("Sajili Sasa")
+        jina_la_bidhaa = st.text_input("Andika jina la bidhaa")
+        idadi_ya_mwanzo = st.number_input("Idadi ya mwanzo", min_value=1)
+        bei_ya_kununulia = st.number_input("Bei ya kununulia (moja)", min_value=1)
+        submit_new = st.form_submit_button("Sajili Sasa")
 
     if submit_new and jina_la_bidhaa:
-    # 1. Soma faili la sasa
-       stoo_df = pd.read_csv('stoo_data.csv')
-    
-    # 2. Tengeneza mstari wa bidhaa mpya
-       new_row = {
-        'Category': jina_la_bidhaa,
-        'Total_Stock': int(idadi_ya_mwanzo),
-        'Buying_Price': float(bei_ya_kununulia)
-       }
-    
-    # 3. Ongeza bidhaa mpya kwenye DataFrame
-       stoo_df = pd.concat([stoo_df, pd.DataFrame([new_row])], ignore_index=True)
-    
-    # 4. HIFADHI KWA NGUVU KWENYE CSV (Hii inazuia isipotee ukirefresh)
-       stoo_df.to_csv('stoo_data.csv', index=False)
-    
-    # 5. Sasisha session state ili ionekane kwenye graph na selectbox papo hapo
-       if 'inventory_awal' in st.session_state:
-           st.session_state.inventory_awal[jina_la_bidhaa] = int(idadi_ya_mwanzo)
-    
-       st.toast(f"✅ {jina_la_bidhaa} imesajiliwa milele!")
-       st.rerun()
+        new_row_item = {'Category': jina_la_bidhaa, 'Total_Stock': int(idadi_ya_mwanzo), 'Buying_Price': float(bei_ya_kununulia)}
+        df_stoo_updated = pd.concat([df_stoo, pd.DataFrame([new_row_item])], ignore_index=True)
+        
+        # Sukuma kwenye Sheets
+        conn.update(worksheet="stoo", data=df_stoo_updated)
+        
+        if 'inventory_awal' in st.session_state:
+            st.session_state.inventory_awal[jina_la_bidhaa] = int(idadi_ya_mwanzo)
+        st.toast(f"✅ {jina_la_bidhaa} imesajiliwa Sheets!")
+        st.rerun()
 
-
-
-
-
+    # --- Main Dashboard Visuals ---
     st.subheader(f"Uchambuzi wa Mauzo: {pamoja}")
     col_a, col_b = st.columns(2)
+    col_a.metric(label=label1, value=f"{m1:,.0f} TZS", delta=f"{diff:,.0f} TZS")
+    col_b.metric(label=label2, value=f"{m2:,.0f} TZS")
 
-    with col_a:
-      st.metric(label=label1, value=f"{m1:,.0f} TZS", delta=f"{diff:,.0f} TZS")
-
-    with col_b:
-      st.metric(label=label2, value=f"{m2:,.0f} TZS")
-
-    #piga hesabu za faida
     m1_profit = df[(df['Date'] >= k1_start) & (df['Date'] <= k1_end)]['Profit'].sum()
     m2_profit = df[(df['Date'] >= k2_start) & (df['Date'] <= k2_end)]['Profit'].sum()
+    growth_pct = ((m1_profit - m2_profit) / m2_profit) * 100 if m2_profit > 0 else 0
 
-    #tafuta asilimia
-    if m2_profit > 0:
-       growth_pct =((m1_profit-m2_profit)/m2_profit)*100
-    else:
-       growth_pct = 0
-
-    #onyesh matokeo
     st.write("___")
-    st.subheader(f"Uchambuzi wa Faida:{pamoja}")
-    p_col1,p_col2 = st.columns(2)
-
-    with p_col1:
-       st.metric(label=f"Fida({label1})",
-                 value=f"{m1_profit:,.0f}TZS",
-                 delta=f"{growth_pct:,.1f}% vs {label2}")
+    st.subheader(f"Uchambuzi wa Faida: {pamoja}")
+    p_col1, p_col2 = st.columns(2)
+    p_col1.metric(label=f"Faida ({label1})", value=f"{m1_profit:,.0f} TZS", delta=f"{growth_pct:,.1f}% vs {label2}")
+    p_col2.metric(label=f"Faida ({label2})", value=f"{m2_profit:,.0f} TZS")
        
-    with p_col2:
-       st.metric(label=f"Faida({label2})", value=f"{m2_profit:,.0f}TZS")
-       
+    st.write("___")
+    col_g1, col_g2 = st.columns(2)
 
+    with col_g1:
+        st.subheader("Mwenendo wa Mauzo ya Nyuma")
+        df_graph = df.copy()
+        daily_sales_graph = df_graph.groupby('Date')['Total'].sum().reset_index().sort_values('Date')
+        st.line_chart(data=daily_sales_graph, x='Date', y='Total', use_container_width=True)
 
-    # 4. Onyesha Matokeo kwenye Dashboard
-    col1, col2 = st.columns(2)
-
-    with col1:
-           st.subheader("Mwenendo wa Mauzo ya Nyuma")
-           df_graph = pd.read_csv('mauzo_data.csv')
-
-           df_graph['Date']=pd.to_datetime(df_graph['Date']).dt.date
-
-           daily_sales=df_graph.groupby('Date')['Total'].sum().reset_index().sort_values('Date')
-      
-           st.line_chart(data=daily_sales,x='Date',y='Total',use_container_width=True)
-
-
-
-    with col2:
-        # Hakikisha unatumia jina sahihi la faili lako la CSV
-        df_mauzo_csv = pd.read_csv('mauzo_data.csv')
-
-# Muhimu: Badilisha column ya Date iwe tarehe halisi ili Prophet isilete error
-        df_mauzo_csv['Date'] = pd.to_datetime(df_mauzo_csv['Date']).dt.date
-   
+    with col_g2:
         st.markdown(f"#### 🔮 Utabiri wa Mauzo")
-    
-    # Ita function ya Prophet
-        forecast = piga_utabiri_wa_mauzo(df_mauzo_csv, siku_za_mbele)
-    
+        forecast = piga_utabiri_wa_mauzo(df, siku_za_mbele)
         if forecast is not None:
-        # 1. Chora Grafu kwanza (Inakaa juu)
-         future_only = forecast.tail(siku_za_mbele)
-         st.line_chart(future_only.set_index('ds')['yhat'])
-        
-        # 2. Weka namba ya matokeo kwa chini (Hitimisho)
-         mauzo_yatarajiwa = forecast['yhat'].iloc[-1]
-         st.metric(
-            label=f"Mauzo ya Siku ya {siku_za_mbele}", 
-            value=f"{mauzo_yatarajiwa:,.0f} TZS"
-        )
+            future_only = forecast.tail(siku_za_mbele)
+            st.line_chart(future_only.set_index('ds')['yhat'])
+            mauzo_yatarajiwa = forecast['yhat'].iloc[-1]
+            st.metric(label=f"Mauzo ya Siku ya {siku_za_mbele}", value=f"{mauzo_yatarajiwa:,.0f} TZS")
          
     st.divider()
     st.write("### 📜 Historia ya Mauzo: Kwa Shirima Store")
 
-# 1. Hakikisha tarehe zipo kwenye format sahihi
-    df_mauzo_csv['Date'] = pd.to_datetime(df_mauzo_csv['Date']).dt.date
-
-# 2. Sehemu ya kuchuja tarehe (Filter)
     col_h1, col_h2 = st.columns(2)
     with col_h1:
-     t_anza = st.date_input("Kuanzia tarehe:", df_mauzo_csv['Date'].min(), key="start_hist")
+        t_anza = st.date_input("Kuanzia tarehe:", df['Date'].min() if not df.empty else leo_halisi, key="start_hist")
     with col_h2:
-     t_isha = st.date_input("Mpaka tarehe:", df_mauzo_csv['Date'].max(), key="end_hist")
+        t_isha = st.date_input("Mpaka tarehe:", df['Date'].max() if not df.empty else leo_halisi, key="end_hist")
 
-# 3. Logic ya kuchuja (Masking)
-    mask = (df_mauzo_csv['Date'] >= t_anza) & (df_mauzo_csv['Date'] <= t_isha)
-    df_filtered = df_mauzo_csv.loc[mask].copy()
+    mask_hist = (df['Date'] >= t_anza) & (df['Date'] <= t_isha)
+    df_filtered_hist = df.loc[mask_hist].copy()
 
-# 4. Onyesha Table
-    if not df_filtered.empty:
-    # Tunatengeneza column ya pesa iliyopambwa (Format)
-     df_filtered['Total (Tsh)'] = df_filtered['Total'].apply(lambda x: f"{x:,.0f}")
-    
-    # Hapa tunachagua column zinazoendana na biashara yako (Bidhaa, Idadi, Bei, Jumla)
-    # Tuseme CSV yako ina: Date, Product, Quantity, Price, Total
-     st.dataframe(
-        df_filtered[['Date', 'Category', 'Qty', 'Unit_Price', 'Total']], 
-        use_container_width=True,
-        hide_index=True
-    )
-    
-    # 5. Jumla ya Pesa kwa chini
-     st.success(f"💰 Jumla ya Mapato Kipindi Hiki: **Tsh {df_filtered['Total'].sum():,.0f}**")
+    if not df_filtered_hist.empty:
+        df_filtered_hist['Total (Tsh)'] = df_filtered_hist['Total'].apply(lambda x: f"{x:,.0f}")
+        st.dataframe(df_filtered_hist[['Date', 'Category', 'Qty', 'Price', 'Total']], use_container_width=True, hide_index=True)
+        st.success(f"💰 Jumla ya Mapato Kipindi Hiki: **Tsh {df_filtered_hist['Total'].sum():,.0f}**")
     else:
-     st.warning("Hakuna mauzo yaliyopatikana katika kipindi ulichochagua.")
+        st.warning("Hakuna mauzo yaliyopatikana katika kipindi ulichochagua.")
     
-
-
-   
-
-    # 5. Uchambuzi wa Bidhaa (Next Wants)
+    # Top Products Analysis
     st.divider()
     st.subheader("🔍 Wateja wanapenda nini zaidi? (Product Analysis)")
-    
     top_5_data = df.groupby('Category')['Qty'].sum().sort_values(ascending=False).head(5)
     names = list(top_5_data.index)
     vals = list(top_5_data.values)
 
-    c1,c2,c3,c4,c5=st.columns(5)
+    c1, c2, c3, c4, c5 = st.columns(5)
+    if len(names) > 0: c1.metric(names[0], f"{int(vals[0])} Pcs")
+    if len(names) > 1: c2.metric(names[1], f"{int(vals[1])} Pcs")
+    if len(names) > 2: c3.metric(names[2], f"{int(vals[2])} Pcs")
+    if len(names) > 3: c4.metric(names[3], f"{int(vals[3])} Pcs")
+    if len(names) > 4: c5.metric(names[4], f"{int(vals[4])} Pcs")
 
-    if len(names)>0:c1.metric(names[0],f"{int(vals[0])}Pcs")
-    if len(names)>1:c2.metric(names[1],f"{int(vals[1])}Pcs")
-    if len(names)>2:c3.metric(names[2],f"{int(vals[2])}Pcs")
-    if len(names)>3:c4.metric(names[3],f"{int(vals[3])}Pcs")
-    if len(names)>4:c5.metric(names[4],f"{int(vals[4])}Pcs")
-    st.divider()
-
-
-   
-
-# 1. TAYARISHA DATA (Hapa unatumia mauzo yako)
-# Tunatumia top_5_data yako iliyopo kwenye picha
     if not top_5_data.empty:
-       labels = top_5_data.index
-       sizes = top_5_data.values
+        labels = top_5_data.index
+        sizes = top_5_data.values
+        colors = ['#ff9999', '#66b3ff', '#99ff99', '#ffcc99', '#c2c2f0']
+        col_pie1, col_pie2, col_pie3 = st.columns([1, 2, 1])
     
-    # 2. TUNABANISHA GRAPH KATIKATI KWA COLUMNS (Ukubwa unadhibitiwa hapa)
-    # columns=[1, 2, 1] maana yake graph itakuwa katikati ya kioo
-    # Na itachukua nusu tu ya kioo (ukilinganisha na columns=[1,1,1])
-       colors = ['#ff9999','#66b3ff','#99ff99','#ffcc99', '#c2c2f0', '#ffb3e6']
-       col1, col2, col3 = st.columns([1, 2, 1])
-    
-       with col2:
-       
-         fig, ax1 = plt.subplots(figsize=(5, 5)) 
-    
-    # Hapa tumeweka rangi ya majina (labels) kuwa 'black'
-         wedges, texts, autotexts = ax1.pie(
-         sizes, 
-         labels=labels, 
-         autopct='%1.1f%%', 
-         startangle=90, 
-         colors=colors, 
-         pctdistance=0.75,   
-         labeldistance=1.1,  
-         textprops={'color': "black", 'fontsize': 10, 'fontweight': 'bold'} # 'black' hapa kwa ajili ya majina
-        )
+        with col_pie2:
+            fig, ax1 = plt.subplots(figsize=(5, 5))
+            wedges, texts, autotexts = ax1.pie(sizes, labels=labels, autopct='%1.1f%%', startangle=90, colors=colors, pctdistance=0.75, textprops={'color': "black", 'fontsize': 10, 'fontweight': 'bold'})
+            centre_circle = plt.Circle((0,0), 0.70, fc='black')
+            fig.gca().add_artist(centre_circle)
 
-        # 4. CHORA DUARA JEUPE KATIKATI (Tundu la Donut)
-        # fc='black' ili iendane na theme yako ya Dark Mode
-         centre_circle = plt.Circle((0,0), 0.70, fc='black')
-         fig = plt.gcf()
-         fig.gca().add_artist(centre_circle)
+            for autotext in autotexts:
+                autotext.set_color('white')
+                autotext.set_weight('bold')
+            
+            ax1.text(0, 0, f"{int(sizes.sum())}\nPcs", ha='center', va='center', fontsize=14, color='white', fontweight='bold')
+            ax1.axis('equal')
+            plt.tight_layout()
+            st.pyplot(fig, use_container_width=True)
 
-        # 5. REMBA ASILIMIA KATIKATI YA DUARA
-         for autotext in autotexts:
-            autotext.set_color('white')
-            autotext.set_weight('bold')
-            autotext.set_fontsize(10) # Inafanya asilimia zisiwe kubwa sana
-
-        # 6. ONGEZA JUMLA YA MAUZO KATIKATI (Kama ukipenda)
-         jumla_mauzo = int(sizes.sum())
-         ax1.text(
-            0, 0, f"{jumla_mauzo}\nPcs", 
-            ha='center', va='center', 
-            fontsize=14, color='white', fontweight='bold'
-        )
-
-         ax1.axis('equal') 
-         plt.tight_layout()
-        
-        # 7. ONYESHA KWENYE STREAMLIT
-        # use_container_width=True sasa hivi itatumia upana wa Column 2 tu
-         st.pyplot(fig, use_container_width=True) 
-    else:
-     st.warning("Hakuna data za mauzo bado!")
-
-
-
-    
     st.divider()
     st.subheader("📊 Mauzo ya Bidhaa Zote")
     st.bar_chart(df.groupby('Category')['Qty'].sum().sort_values(ascending=False))
   
+    # --- Mchanganuo wa Stoo Table ---
     st.markdown("### 📋 Mchanganuo wa Stoo (Inventory)")
-
-    # 1. Soma data za Stoo
-    df_stoo = pd.read_csv('stoo_data.csv')
-
-    # 2. Soma data za Mauzo na piga hesabu ya jumla ya kila bidhaa
     try:
-      df_mauzo = pd.read_csv('mauzo_data.csv')
-      mauzo_sum = df_mauzo.groupby('Category')['Qty'].sum().reset_index()
-      mauzo_sum.columns = ['Category', 'Zilizouzwa']
+        mauzo_sum_table = df.groupby('Category')['Qty'].sum().reset_index()
+        mauzo_sum_table.columns = ['Category', 'Zilizouzwa']
     except:
-    # Kama faili halipo bado, weka 0
-       mauzo_sum = pd.DataFrame(columns=['Category', 'Zilizouzwa'])
+        mauzo_sum_table = pd.DataFrame(columns=['Category', 'Zilizouzwa'])
 
-    # 3. Unganisha Stoo na Mauzo (Merge)
-    df_final = pd.merge(df_stoo, mauzo_sum, on='Category', how='left').fillna(0)
+    df_final_table = pd.merge(df_stoo, mauzo_sum_table, on='Category', how='left').fillna(0)
+    df_final_table['Zilizobaki'] = (df_final_table['Total_Stock'] - df_final_table['Zilizouzwa']).astype(int)
+    df_final_table['Total_Stock'] = df_final_table['Total_Stock'].astype(int)
+    df_final_table['Zilizouzwa'] = df_final_table['Zilizouzwa'].astype(int)
 
-    # 4. Piga hesabu ya Zilizobaki na badilisha kuwa Integer (Namba kamili)
-    df_final['Zilizobaki'] = (df_final['Total_Stock'] - df_final['Zilizouzwa']).astype(int)
-    df_final['Total_Stock'] = df_final['Total_Stock'].astype(int)
-    df_final['Zilizouzwa'] = df_final['Zilizouzwa'].astype(int)
-
-    # 5. Pangilia safu (Columns) kwa majina unayotaka
-    df_display = df_final[['Category', 'Total_Stock', 'Zilizouzwa', 'Zilizobaki']]
+    df_display = df_final_table[['Category', 'Total_Stock', 'Zilizouzwa', 'Zilizobaki']]
     df_display.columns = ['Aina ya Bidhaa', 'Mzigo Ulioingia', 'Zilizouzwa', 'Zilizobaki']
 
-    # 6. FUNCTION YA RANGI: Inapaka nyekundu ikiwa Zilizobaki < 5
     def highlight_low_stock(row):
-      color = 'background-color: #ff4b4b; color: white' if row['Zilizobaki'] < 10 else ''
-      return [color] * len(row)
+        return ['background-color: #ff4b4b; color: white' if row['Zilizobaki'] < 10 else ''] * len(row)
 
-    # 7. Onyesha Jedwali lenye urembo wa rangi
     st.dataframe(df_display.style.apply(highlight_low_stock, axis=1), use_container_width=True)
 
-
+    # --- Orders System ---
     st.divider()
     st.subheader("Orders Table")
-
-
-    bidhaa_zilizopo=list(df_stoo['Category'].unique())
+    bidhaa_zilizopo = list(df_stoo['Category'].unique())
    
-    #form ya kuongeza mteja
     with st.expander("Bonyeza hapa kusajili Oda Mpya"):
-       with st.form("new_order_form",clear_on_submit=True):
-          col1,col2=st.columns(2)
-          with col1:
-             mteja_mpya=st.text_input("Jina la Mteja")
-             simu_mpya=st.text_input("Namba Mpya")
-             #soma bidhaa halisi toka kwy stoo
-             chaguo=st.selectbox("Chagua Bidhaa",bidhaa_zilizopo)
+        with st.form("new_order_form", clear_on_submit=True):
+            col_o1, col_o2 = st.columns(2)
+            with col_o1:
+                mteja_mpya = st.text_input("Jina la Mteja")
+                simu_mpya = st.text_input("Namba Mpya")
+                chaguo = st.selectbox("Chagua Bidhaa", bidhaa_zilizopo)
+                bidhaa_mpya_text = st.text_input("Kama Bidhaa ni Mpya, andika hapa:")
+                location_mpya = st.text_input("Mteja anatokea wapi:")
+            with col_o2:
+                qty_mpya = st.number_input("Idadi (Qty)", min_value=1, step=1)
+                advanced_mpya = st.number_input("Advanced (TZS)", min_value=0, step=5000)
+                hali_mpya = st.selectbox("Hali ya Oda", ["Pending", "Completed", "Canceled"])
+                bidhaa_final = bidhaa_mpya_text.strip() if bidhaa_mpya_text.strip() != "" else chaguo
 
-             bidhaa_mpya_text=st.text_input("Kama Bidhaa ni Mpya,andika apa:")
-             location_mpya=st.text_input("Mteja anatokea wapi:")
+            if st.form_submit_button("Hifadhi Oda"):
+                if mteja_mpya and simu_mpya and bidhaa_final:
+                    mpya = {
+                        'Tarehe': datetime.now().strftime("%Y-%m-%d"), 'Mteja': mteja_mpya, 'Simu': str(simu_mpya),
+                        'Bidhaa': bidhaa_final, 'Qty': qty_mpya, 'Advanced': advanced_mpya, 'Status': hali_mpya, 'Location': location_mpya
+                    }
+                    df_orders_updated = pd.concat([df_orders, pd.DataFrame([mpya])], ignore_index=True)
+                    
+                    # Update Sheets
+                    conn.update(worksheet="orders", data=df_orders_updated)
+                    st.success(f"Oda ya {mteja_mpya} imepokelewa Google Sheets!")
+                    st.rerun()
+                else:
+                    st.error("Tafadhali jaza Jina, Simu, na Bidhaa!")
 
-       with col2:
-          qty_mpya=st.number_input("Idadi(Qty)",min_value=1,step=1)
-          advanced_mpya=st.number_input("Advanced(TZS)",min_value=0,step=5000)
-          hali_mpya = st.selectbox("Hali ya Oda",["Pending","Completed","Canceled"])
-
-          if bidhaa_mpya_text.strip()!="":
-             bidhaa_final = bidhaa_mpya_text
-          else:
-             bidhaa_final=chaguo
-
-
-       
-          if st.form_submit_button("Hifadhi Oda"):
-           if mteja_mpya and simu_mpya and bidhaa_final:
-             mpya={
-                'Tarehe':datetime.now().strftime("%Y-%m-%d"),
-                'Mteja':mteja_mpya,
-                'Simu':str(simu_mpya),
-                'Bidhaa':bidhaa_final,
-                'Qty':qty_mpya,
-                'Advanced':advanced_mpya,
-                'Status':hali_mpya,
-                'Location':location_mpya
-             }
-
-             df_orders=pd.read_csv('orders_data.csv')
-             df_updated=pd.concat([df_orders,pd.DataFrame([mpya])],ignore_index=True)
-             df_updated.to_csv('orders_data.csv',index=False)
-
-             st.success(f"Oda ya {mteja_mpya}imepokelewa!")
-             st.rerun()
-          else:
-             st.error("Tafadhali jaza JIna,Simu,na Bidhaa!")
-
-
-
-    #soma data ya sas
-
-
-    df_orders = pd.read_csv('orders_data.csv')
-    # Badilisha tarehe kuwa format inayoeleweka
-    df_orders['Tarehe'] = pd.to_datetime(df_orders['Tarehe'], errors='coerce').dt.date
-    st.write("Chuja Oda Kwa Tarehe")
-    col_date1,col_date2=st.columns(2)
-
-    with col_date1:
-       start_date=st.date_input("Kuanzia:",df_orders['Tarehe'].min())
-    with col_date2:
-       end_date=st.date_input("Mpaka:",df_orders['Tarehe'].min())
-    st.write("Filter Status")
-    status_options=df_orders['Status'].unique().tolist()
-    status_filter=st.multiselect("Chagua Hali:",options=status_options,default=status_options)
-    
-
-    mask = (df_orders['Tarehe']>=start_date)&(df_orders['Tarehe']<=end_date)&(df_orders['Status'].isin(status_filter))
-    df_filtered=df_orders[mask]
-   
-    # 1. Badilisha hapa kuweka "Kinga" ya if
-    if not df_filtered.empty:
-       total_advance=df_filtered['Advanced'].sum()
-       st.metric(label=f"Jumla ya Advance({start_date} mpaka {end_date})",value=f"{total_advance:,.0f}TZS")
-    else:
-       st.info("Hakuna Oda ya Kipindi iki")
-                 
-                 
-    st.dataframe(df_filtered.style.applymap(style_status,subset=['Status']), use_container_width=True)
-
-    #chagua order unayotaka
+    # Chapa Orders zilizochujwa
     if not df_orders.empty:
-       target_customer = st.selectbox("Chagua mteja wa kumfanyia marekebisho:",df_orders['Mteja'].unique())
+        df_orders['Tarehe'] = pd.to_datetime(df_orders['Tarehe'], errors='coerce').dt.date
+        st.write("Chuja Oda Kwa Tarehe")
+        col_ord1, col_ord2 = st.columns(2)
+        with col_ord1:
+            start_date = st.date_input("Kuanzia:", df_orders['Tarehe'].min() if not df_orders['Tarehe'].isnull().all() else leo_halisi)
+        with col_ord2:
+            end_date = st.date_input("Mpaka:", df_orders['Tarehe'].max() if not df_orders['Tarehe'].isnull().all() else leo_halisi)
+        
+        status_options = df_orders['Status'].unique().tolist()
+        status_filter = st.multiselect("Chagua Hali:", options=status_options, default=status_options)
+        
+        mask_ord = (df_orders['Tarehe'] >= start_date) & (df_orders['Tarehe'] <= end_date) & (df_orders['Status'].isin(status_filter))
+        df_filtered_ord = df_orders[mask_ord]
+   
+        if not df_filtered_ord.empty:
+            st.metric(label=f"Jumla ya Advance", value=f"{df_filtered_ord['Advanced'].sum():,.0f} TZS")
+            st.dataframe(df_filtered_ord.style.applymap(style_status, subset=['Status']), use_container_width=True)
+        else:
+            st.info("Hakuna Oda ya Kipindi hiki")
 
-       col_a,col_b,col_c=st.columns(3)
+        # Update and Delete Orders Section
+        target_customer = st.selectbox("Chagua mteja wa kumfanyia marekebisho:", df_orders['Mteja'].unique())
+        col_u1, col_u2, col_u3 = st.columns(3)
 
-       with col_a:
-          #badilisha status
-          new_status=st.selectbox("Badilisha Hali(Status):",["Pending","Completed","Canceled"])
-          ongeza_hela=st.number_input("Ongeza Pesa Ya Advance(TZS):",min_value=0,step=5000)
+        with col_u1:
+            new_status = st.selectbox("Badilisha Hali (Status):", ["Pending", "Completed", "Canceled"])
+            ongeza_hela = st.number_input("Ongeza Pesa Ya Advance (TZS):", min_value=0, step=5000)
 
-          if st.button("Update Status"):
-             df_temp = pd.read_csv('orders_data.csv')
+            if st.button("Update Status"):
+                idx = df_orders[df_orders['Mteja'] == target_customer].index
+                if not idx.empty:
+                    df_orders.at[idx[0], 'Advanced'] = df_orders.at[idx[0], 'Advanced'] + ongeza_hela
+                    df_orders.at[idx[0], 'Status'] = new_status
+                    
+                    # Push direct Google Sheets
+                    conn.update(worksheet="orders", data=df_orders)
+                    st.success(f"Oda ya {target_customer} sasa ni {new_status}")
+                    st.rerun()
 
-             idx = df_temp[df_temp['Mteja']==target_customer].index
-
-             if not idx.empty:
-                hela_ya_zamani=df_temp.at[idx[0],'Advanced']
-
-                hela_ya_jumla = hela_ya_zamani+ongeza_hela
-
-                df_temp.at[idx[0],'Advanced']=hela_ya_jumla
-                df_temp.at[idx[0],'Status']=new_status
-
-                df_temp.to_csv('orders_data.csv',index=False)
-             
-                st.success(f"Oda ya {target_customer}sasa ni {new_status}")
+        with col_u2:
+            if st.button("Futa Oda Hii"):
+                df_orders = df_orders[df_orders['Mteja'] != target_customer]
+                conn.update(worksheet="orders", data=df_orders)
+                st.warning(f"Oda ya {target_customer} imefutwa Sheets!")
                 st.rerun()
 
-
-
-       with col_b:
-          #futa oda kabisa
-          if st.button("Futa Oda Hii"):
-             df_orders=df_orders[df_orders['Mteja']!=target_customer]
-             df_orders.to_csv('orders_data.csv',index=False)
-             st.warning(f"Oda ya {target_customer}imefutwa!")
-             st.rerun()
-
-       with col_c:
-          st.write("**Maelekezo ya Order:**")
-          info = df_orders[df_orders['Mteja']==target_customer].iloc[0]
-
-          st.write(f"Tarehe:{info['Tarehe']}")
-          st.write(f"Bidhaa:{info['Bidhaa']}")
-          st.write(f"Idadi:{info['Qty']}Pcs")
-          st.write(f"Simu:{info['Simu']}")
-          st.write(f"Advanced:{info['Advanced']}TZS")
-          st.write(f"Location:{info['Location']}")
-
-
-          #logic ya rangi
-          status_sasa =info['Status']
-          if status_sasa=="Pending":
-             st.error(f"Hali:{status_sasa}")
-          elif status_sasa == "Completed":
-             st.success(f"Hali:{status_sasa}")
-          else:
-             st.info(f"Hali:{status_sasa}")
+        with col_u3:
+            st.write("**Maelekezo ya Order:**")
+            info = df_orders[df_orders['Mteja'] == target_customer].iloc[0]
+            st.write(f"Tarehe: {info['Tarehe']}")
+            st.write(f"Bidhaa: {info['Bidhaa']}")
+            st.write(f"Idadi: {info['Qty']} Pcs")
+            st.write(f"Simu: {info['Simu']}")
+            st.write(f"Advanced: {info['Advanced']} TZS")
+            st.write(f"Location: {info['Location']}")
+            
+            if info['Status'] == "Pending": st.error(f"Hali: {info['Status']}")
+            elif info['Status'] == "Completed": st.success(f"Hali: {info['Status']}")
+            else: st.info(f"Hali: {info['Status']}")
     else:
-       st.info("Hakuna oda za kufanyiwa marekebisho kwa sasa")
+        st.info("Hakuna oda za kufanyiwa marekebisho kwa sasa")
 
-  
+    # Prophet Profit Analysis
     st.divider()
     st.subheader("🔮 Frank AI: Profit Analysis")
+    siku_adjust = st.slider("Adjust Siku:", 7, 90, 30, key="fs_slider")
 
-    col_top1, col_top2 = st.columns([2, 1])
-    with col_top2:
-     siku_adjust = st.slider("Adjust Siku:", 7, 90, 30, key="fs_slider")
-
-# Hapa ndipo sasa tunaita function na kuonyesha grafu
     with st.spinner("Frank AI is analysing profit..."):
-     matokeo = piga_utabiri_wa_faida(df_mauzo_csv, siku_adjust)
+        matokeo = piga_utabiri_wa_faida(df, siku_adjust)
+        if matokeo is not None:
+            col_prof1, col_prof2 = st.columns([2, 1])
+            with col_prof1:
+                st.line_chart(matokeo.set_index('ds')['yhat'])
+            with col_prof2:
+                faida_ijayo = matokeo['yhat'].iloc[-1]
+                st.metric(label=f"Faida ya Siku {siku_adjust}", value=f"{faida_ijayo:,.0f} TZS")
+        else:
+            st.error("AI imeshindwa kusoma data ya faida.")
     
-     if matokeo is not None:
-        c1, c2 = st.columns([2, 1])
-        with c1:
-            # Hii sasa itatokea nje ya function na itaonekana!
-            st.line_chart(matokeo.set_index('ds')['yhat'])
-        with c2:
-            faida_ijayo = matokeo['yhat'].iloc[-1]
-            st.metric(label=f"Faida ya Siku {siku_adjust}", value=f"{faida_ijayo:,.0f} TZS")
-     else:
-         st.error("AI imeshindwa kusoma data. Hakikisha CSV ina 'Date' na 'Profit'.")
-    
-
-# 3. Onyesha data za sasa kwa ufupi (Comparison)
-    st.write("---")
-    total_profit_now = df_mauzo_csv['Profit'].sum()
-    st.write(f"**Jumla ya Faida Mpaka Sasa:** TSh {total_profit_now:,.0f}") 
+    st.write(f"**Jumla ya Faida Mpaka Sasa:** TSh {df['Profit'].sum():,.0f}") 
        
-      
-   
+    # --- Ripoti Area ---
     st.divider()
     st.write("### 📊 Ripoti na Uchambuzi wa Biashara (Mauzo & Stoo)")
 
-# Soma faili la mauzo moja kwa moja hapa kwa ajili ya ripoti
-    try:
-      df_mauzo_ripoti = pd.read_csv('mauzo_data.csv')
-    except Exception:
-     df_mauzo_ripoti = pd.DataFrame()
-
-    if not df_mauzo_ripoti.empty:
-    # 1. Menu ya kuchagua kipindi
-     aina_ya_ripoti = st.selectbox(
-        "Chagua Kipindi cha Ripoti:",
-        ["Ripoti ya Siku (Leo)", "Ripoti ya Wiki Hii", "Ripoti ya Mwezi Huu", "Ripoti ya Mwaka Huu"],
-        key="ripoti_kipindi_real_box"
-    )
+    if not df.empty:
+        aina_ya_ripoti = st.selectbox("Chagua Kipindi cha Ripoti:", ["Ripoti ya Siku (Leo)", "Ripoti ya Wiki Hii", "Ripoti ya Mwezi Huu", "Ripoti ya Mwaka Huu"], key="ripoti_kipindi_real_box")
+        df_rep = df.copy()
+        df_rep['Date'] = pd.to_datetime(df_rep['Date']).dt.date
     
-    # Hakikisha Tarehe ipo kwenye format sahihi
-     df_mauzo_ripoti['Date'] = pd.to_datetime(df_mauzo_ripoti['Date']).dt.date
-     leo = datetime.now().date()
-    
-    # 2. Logic ya kuchuja data ya mauzo kulingana na kipindi ulichochagua
-     if aina_ya_ripoti == "Ripoti ya Siku (Leo)":
-        df_rep = df_mauzo_ripoti[df_mauzo_ripoti['Date'] == leo]
-        f_name = f"ripoti_ya_siku_{leo}.csv"
-     elif aina_ya_ripoti == "Ripoti ya Wiki Hii":
-         mwanzo_wa_wiki = leo - pd.Timedelta(days=6)
-         df_rep = df_mauzo_ripoti[(df_mauzo_ripoti['Date'] >= mwanzo_wa_wiki) & (df_mauzo_ripoti['Date'] <= leo )]
-         f_name = f"ripoti_ya_wiki_{leo}.csv"
-     elif aina_ya_ripoti == "Ripoti ya Mwezi Huu":
-         df_rep = df_mauzo_ripoti[pd.to_datetime(df_mauzo_ripoti['Date']).dt.month == leo.month]
-         f_name = f"ripoti_ya_mwezi_{leo.month}_{leo.year}.csv"
-     else:
-        df_rep = df_mauzo_ripoti[pd.to_datetime(df_mauzo_ripoti['Date']).dt.year == leo.year]
-        f_name = f"ripoti_ya_mwaka_{leo.year}.csv"
-
-    # 3. Kuanza Kupiga Hesabu za Mauzo halisi
-     if not df_rep.empty:
-        # A. Jumla ya Mauzo na Profit kutokea kwenye faili la mauzo
-        jumla_mauzo = df_rep['Total'].sum()
-        jumla_profit = df_rep['Profit'].sum()
-        
-        # B. Idadi ya bidhaa zote zilizouzika (Sum ya Qty)
-        bidhaa_zilizouzwa = df_rep['Qty'].sum()
-        
-        # C. Bidhaa iliyouzika kwa asilimia kubwa (Inasoma column ya 'Category')
-        top_bidhaa_df = df_rep.groupby('Category')['Qty'].sum().reset_index()
-        top_bidhaa_df['Asilimia'] = (top_bidhaa_df['Qty'] / bidhaa_zilizouzwa) * 100
-        top_bidhaa_safi = top_bidhaa_df.sort_values(by='Qty', ascending=False).iloc[0]
-        
-        top_jina = top_bidhaa_safi['Category']
-        top_asilimia = top_bidhaa_safi['Asilimia']
-
-        # D. Soma faili la stoo kujua vitu vilivyobaki stoo kwa ujumla wake
-        try:
-            df_stoo_real = pd.read_csv('stoo_data.csv')
-            vitu_vya_stoo = df_stoo_real['Total_Stock'].sum()
-        except Exception:
-            vitu_vya_stoo = 0
-
-        # 4. KUONYESHA MATOKEO KWENYE DASHBOARD (Metrics Cards)
-        c_rep1, c_rep2, c_rep3 = st.columns(3)
-        with c_rep1:
-            st.metric(label="💰 Jumla ya Mauzo", value=f"{jumla_mauzo:,.0f} TZS")
-            st.metric(label="📦 Jumla ya Vitu Vilivyouzwa", value=f"{bidhaa_zilizouzwa:,} Pcs")
-            
-        with c_rep2:
-            st.metric(label="📈 Faida Halisi (Profit)", value=f"{jumla_profit:,.0f} TZS")
-            st.metric(label="🏬 Vitu Vilivyobaki Stoo kwa Ujumla", value=f"{vitu_vya_stoo:,} Pcs")
-            
-        with c_rep3:
-            st.metric(label="🥇 Bidhaa Inayoongoza", value=f"{top_jina}")
-            st.metric(label="📊 Asilimia ya Soko", value=f"{top_asilimia:.1f}%")
-
-        st.info(f"Kipindi hiki, bidhaa kutoka kundi la **{top_jina}** ndizo zilizouzika kwa wingi zaidi, zikichukua **{top_asilimia:.1f}%** ya bidhaa zote zilizotoka stoo.")
-        
-          # Anzisha class ya FPDF
-        pdf = FPDF()
-        pdf.add_page()
-        pdf.set_auto_page_break(auto=True, margin=15)
-        
-        # 1. Kichwa cha Habari (Header)
-        pdf.set_font("Helvetica", "B", 18)
-        pdf.set_text_color(26, 54, 93)  # Rangi ya Bluu ya Kiofisi
-        pdf.cell(200, 10, txt="KWA SHIRIMA STORE - DODOMA", ln=True, align="C")
-        
-        pdf.set_font("Helvetica", "B", 12)
-        pdf.set_text_color(74, 85, 104) # Kijivu
-        pdf.cell(200, 8, txt=f"Ripoti ya Biashara: {aina_ya_ripoti}", ln=True, align="C")
-        pdf.cell(200, 8, txt=f"Tarehe ya Ripoti: {leo.strftime('%d-%m-%Y')}", ln=True, align="C")
-        pdf.ln(10) # Nafasi ya chini (Spacer)
-        
-        # 2. SEHEMU YA 1: MUHTASARI WA MAPATO (Table ya Kwanza)
-        pdf.set_font("Helvetica", "B", 14)
-        pdf.set_text_color(26, 54, 93)
-        pdf.cell(200, 10, txt="1. Muhtasari wa Makusanyo ya Kifedha", ln=True)
-        pdf.ln(2)
-        
-        # Muundo wa Meza ya Muhtasari
-        pdf.set_font("Helvetica", "B", 11)
-        pdf.set_fill_color(26, 54, 93)   # Background ya Header (Bluu)
-        pdf.set_text_color(255, 255, 255) # Maandishi ya Header (Nyeupe)
-        
-        pdf.cell(90, 8, txt="Kipengele", border=1, ln=False, fill=True)
-        pdf.cell(100, 8, txt="Thamani / Kiasi", border=1, ln=True, fill=True)
-        
-        # Data za muhtasari
-        pdf.set_text_color(0, 0, 0) # Rudisha maandishi ya kawaida (Meusi)
-        pdf.set_font("Helvetica", "", 11)
-        
-        data_muhtasari = [
-            ("Jumla ya Mauzo", f"{jumla_mauzo:,.0f} TZS"),
-            ("Faida Halisi (Profit)", f"{jumla_profit:,.0f} TZS"),
-            ("Idadi ya Bidhaa Zilizouzwa", f"{bidhaa_zilizouzwa:,} Pcs"),
-            ("Bidhaa Inayoongoza", f"{top_jina} ({top_asilimia:.1f}%)"),
-            ("Jumla ya Vitu Vilivyobaki Stoo", f"{vitu_vya_stoo:,} Pcs")
-        ]
-        
-        for kipengele, thamani in data_muhtasari:
-            pdf.set_font("Helvetica", "B", 11) if "Jumla" in kipengele or "Faida" in kipengele else pdf.set_font("Helvetica", "", 11)
-            pdf.cell(90, 8, txt=kipengele, border=1, ln=False)
-            pdf.cell(100, 8, txt=thamani, border=1, ln=True)
-            
-        pdf.ln(12) # Nafasi kwenda sehemu inayofuata
-        
-        # 3. SEHEMU YA 2: MCHANGANUO WA BIDHAA (Table ya Pili)
-        pdf.set_font("Helvetica", "B", 14)
-        pdf.set_text_color(26, 54, 93)
-        pdf.cell(200, 10, txt="2. Mchanganuo wa Mauzo kwa Makundi ya Bidhaa (Category)", ln=True)
-        pdf.ln(2)
-        
-        # Header ya Table ya pili
-        pdf.set_font("Helvetica", "B", 11)
-        pdf.set_fill_color(74, 85, 104)   # Background ya Kijivu
-        pdf.set_text_color(255, 255, 255) # Maandishi Nyeupe
-        
-        pdf.cell(80, 8, txt="Category / Kundi", border=1, ln=False, fill=True)
-        pdf.cell(55, 8, txt="Idadi Zilizouzwa", border=1, ln=False, fill=True, align="C")
-        pdf.cell(55, 8, txt="Asilimia ya Soko", border=1, ln=True, fill=True, align="C")
-        
-        # Data za Table ya Pili kutoka kwenye loop yetu ya groupby
-        pdf.set_text_color(0, 0, 0)
-        pdf.set_font("Helvetica", "", 11)
-        
-        for idx, row in top_bidhaa_df.iterrows():
-            pdf.cell(80, 8, txt=str(row['Category']), border=1, ln=False)
-            pdf.cell(55, 8, txt=f"{row['Qty']:,} Pcs", border=1, ln=False, align="C")
-            pdf.cell(55, 8, txt=f"{row['Asilimia']:.1f}%", border=1, ln=True, align="C")
-            
-         # 4. Kutoa PDF kama byte string kwa ajili ya Streamlit Download Button
-        pdf_output = pdf.output(dest='S')
-        if isinstance(pdf_output, str):
-            pdf_data = pdf_output(dest='S') # fpdf ya zamani inatoa string
+        if aina_ya_ripoti == "Ripoti ya Siku (Leo)":
+            df_rep = df_rep[df_rep['Date'] == leo_halisi]
+            f_name = f"ripoti_ya_siku_{leo_halisi}.pdf"
+        elif aina_ya_ripoti == "Ripoti ya Wiki Hii":
+            mwanzo_wa_wiki = leo_halisi - pd.Timedelta(days=6)
+            df_rep = df_rep[(df_rep['Date'] >= mwanzo_wa_wiki) & (df_rep['Date'] <= leo_halisi)]
+            f_name = f"ripoti_ya_wiki_{leo_halisi}.pdf"
+        elif aina_ya_ripoti == "Ripoti ya Mwezi Huu":
+            df_rep = df_rep[pd.to_datetime(df_rep['Date']).dt.month == leo_halisi.month]
+            f_name = f"ripoti_ya_mwezi_{leo_halisi.month}_{leo_halisi.year}.pdf"
         else:
-            pdf_data = bytes(pdf_output)# fpdf2 mpya inatoa bytes moja kwa moja
+            df_rep = df_rep[pd.to_datetime(df_rep['Date']).dt.year == leo_halisi.year]
+            f_name = f"ripoti_ya_mwaka_{leo_halisi.year}.pdf"
+
+        if not df_rep.empty:
+            jumla_mauzo = df_rep['Total'].sum()
+            jumla_profit = df_rep['Profit'].sum()
+            bidhaa_zilizouzwa = df_rep['Qty'].sum()
             
-        # 5. Kitufe cha Streamlit
-        st.download_button(
-            label=f"📥 Pakua {aina_ya_ripoti} (PDF)",
-            data=pdf_data,
-            file_name=f_name.replace('.csv', '.pdf'),
-            mime='application/pdf',
-            key='download_fpdf_report_btn'
-        )
-        
-        
-       
-             
+            top_bidhaa_df = df_rep.groupby('Category')['Qty'].sum().reset_index()
+            top_bidhaa_df['Asilimia'] = (top_bidhaa_df['Qty'] / bidhaa_zilizouzwa) * 100
+            top_bidhaa_safi = top_bidhaa_df.sort_values(by='Qty', ascending=False).iloc[0]
+            
+            top_jina = top_bidhaa_safi['Category']
+            top_asilimia = top_bidhaa_safi['Asilimia']
+            vitu_vya_stoo = df_stoo['Total_Stock'].sum()
 
+            c_rep1, c_rep2, c_rep3 = st.columns(3)
+            with c_rep1:
+                st.metric(label="💰 Jumla ya Mauzo", value=f"{jumla_mauzo:,.0f} TZS")
+                st.metric(label="📦 Jumla ya Vitu Vilivyouzwa", value=f"{bidhaa_zilizouzwa:,} Pcs")
+            with c_rep2:
+                st.metric(label="📈 Faida Halisi (Profit)", value=f"{jumla_profit:,.0f} TZS")
+                st.metric(label="🏬 Vitu Vilivyobaki Stoo", value=f"{vitu_vya_stoo:,} Pcs")
+            with c_rep3:
+                st.metric(label="🥇 Bidhaa Inayoongoza", value=f"{top_jina}")
+                st.metric(label="📊 Asilimia ya Soko", value=f"{top_asilimia:.1f}%")
 
+            # PDF Generator
+            pdf = FPDF()
+            pdf.add_page()
+            pdf.set_auto_page_break(auto=True, margin=15)
+            pdf.set_font("Helvetica", "B", 18)
+            pdf.set_text_color(26, 54, 93)
+            pdf.cell(200, 10, txt="KWA SHIRIMA STORE - DODOMA", ln=True, align="C")
+            pdf.set_font("Helvetica", "B", 12)
+            pdf.cell(200, 8, txt=f"Ripoti: {aina_ya_ripoti}", ln=True, align="C")
+            pdf.ln(10)
+            
+            # Print Table 1
+            pdf.set_font("Helvetica", "B", 11)
+            pdf.set_fill_color(26, 54, 93)
+            pdf.set_text_color(255, 255, 255)
+            pdf.cell(90, 8, txt="Kipengele", border=1, ln=False, fill=True)
+            pdf.cell(100, 8, txt="Kiasi", border=1, ln=True, fill=True)
+            
+            pdf.set_text_color(0, 0, 0)
+            data_muhtasari = [
+                ("Jumla ya Mauzo", f"{jumla_mauzo:,.0f} TZS"),
+                ("Faida Halisi", f"{jumla_profit:,.0f} TZS"),
+                ("Vitu Vilivyouzwa", f"{bidhaa_zilizouzwa:,} Pcs"),
+                ("Inayoongoza", f"{top_jina} ({top_asilimia:.1f}%)")
+            ]
+            for k, v in data_muhtasari:
+                pdf.cell(90, 8, txt=k, border=1, ln=False)
+                pdf.cell(100, 8, txt=v, border=1, ln=True)
 
- except FileNotFoundError:
-    st.error("Tafadhali kwanza run ile script ya kutengeneza CSV!")
+            pdf_output = pdf.output(dest='S')
+            pdf_data = bytes(pdf_output) if not isinstance(pdf_output, str) else pdf_output
+            
+            st.download_button(
+                label=f"📥 Pakua {aina_ya_ripoti} (PDF)",
+                data=pdf_data,
+                file_name=f_name,
+                mime='application/pdf',
+                key='download_fpdf_report_btn'
+            )
+        else:
+            st.warning("Hakuna mauzo katika kipindi hiki cha ripoti.")
