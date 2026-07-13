@@ -19,7 +19,7 @@ import logging
 # Hii inazuia Prophet isijaze terminal yako na meseji nyingi za kodi zisizo na lazima
 logging.getLogger('prophet').setLevel(logging.WARNING)
 
-conn = st.connection("connections.gsheets", type=GSheetsConnection)
+conn = st.connection("gsheets", type=GSheetsConnection)
 
 try:
     mauzo_global = conn.read(worksheet="mauzo", ttl=0)
