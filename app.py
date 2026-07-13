@@ -51,23 +51,38 @@ def piga_utabiri_wa_faida(df, siku_za_mbele):
 
 def piga_utabiri_wa_mauzo(df, siku_za_mbele):
     try:
+        # 1. Hakikisha df si tupu na ina columns zinazohitajika
+        if df is None or df.empty or 'Date' not in df.columns or 'Total' not in df.columns:
+            st.info("ℹ️ Hakuna data ya mauzo inayopatikana kwa ajili ya utabiri.")
+            return None
+            
         # Prophet inataka column ziitwe 'ds' na 'y'
         df_prophet = df[['Date', 'Total']].copy()
         df_prophet.columns = ['ds', 'y']
+
+        # Hakikisha tarehe zipo kwenye format sahihi na thamani ni namba
+        df_prophet['ds'] = pd.to_datetime(df_prophet['ds'], errors='coerce')
+        df_prophet['y'] = pd.to_numeric(df_prophet['y'], errors='coerce')
         
-        # Hakikisha tarehe zipo kwenye format sahihi
-        df_prophet['ds'] = pd.to_datetime(df_prophet['ds'])
-        
-        # Anzisha na ufunze model
+        # Safisha mistari yote yenye NaN
+        df_prophet_clean = df_prophet.dropna(subset=['ds', 'y'])
+
+        # Prophet inahitaji angalau mistari 2 halali kufanya kazi
+        if len(df_prophet_clean) < 2:
+            st.info("ℹ️ Data ya mauzo haitoshi kufanya utabiri kwa sasa. Inahitajika angalau rekodi za siku 2 tofauti.")
+            return None
+
+        # Anzisha na ufunze model kwa kutumia data iliyosafishwa
         m = Prophet(changepoint_prior_scale=0.05, daily_seasonality=False)
-        m.fit(df_prophet)
-        
+        m.fit(df_prophet_clean)
+
         # Tengeneza tarehe za mbeleni
         future = m.make_future_dataframe(periods=siku_za_mbele)
         forecast = m.predict(future)
-        
+
         return forecast
     except Exception as e:
+        # Hapa bado inalinda kama kuna hitilafu nyingine yoyote isiyotegemewa
         st.error(f"Error kwenye Prophet: {e}")
         return None
     
@@ -359,16 +374,19 @@ if check_password():
     st.sidebar.header("📝 Ingiza Mauzo")
 
 # 2. Ujanja wa 'Session State' ili ku-update bei live
+    # 2. Ujanja wa 'Session State' ili ku-update bei live
     if 'selected_category' not in st.session_state:
+      if bei_kununua_dict:
         st.session_state.selected_category = list(bei_kununua_dict.keys())[0]
     else:
         st.session_state.selected_category = "Tupu"
- 
+
 # CHAGUA BIDHAA HAPA (Hii ita-refresh ukurasa na kubadilisha bei)
+    categories_options = list(bei_kununua_dict.keys()) if bei_kununua_dict else ["Hakuna Bidhaa"]
+
     new_category = st.sidebar.selectbox(
-    "Aina ya Bidhaa", 
-    options=list(bei_kununua_dict.keys()),
-    key="cat_selector"
+    "Aina ya Bidhaa",
+    options=categories_options,
     )
 
 # 3. ANZA FORM (Sasa bei itaonekana humu ndani ikiwa imeshabadilika)
@@ -683,17 +701,26 @@ if check_password():
     st.write("### 📜 Historia ya Mauzo: Kwa Shirima Store")
 
 # 1. Hakikisha tarehe zipo kwenye format sahihi
-    df_mauzo_csv['Date'] = pd.to_datetime(df_mauzo_csv['Date']).dt.date
+    df_mauzo_csv['Date'] = pd.to_datetime(df_mauzo_csv['Date'], errors='coerce')
+
+    # Angalia kama kuna tarehe yoyote halali, la sivyo weka tarehe ya leo kama default
+    if not df_mauzo_csv['Date'].dropna().empty:
+        default_start = df_mauzo_csv['Date'].min().date()
+        default_end = df_mauzo_csv['Date'].max().date()
+    else:
+        import datetime
+        default_start = datetime.date.today()
+        default_end = datetime.date.today()
 
 # 2. Sehemu ya kuchuja tarehe (Filter)
     col_h1, col_h2 = st.columns(2)
     with col_h1:
-     t_anza = st.date_input("Kuanzia tarehe:", df_mauzo_csv['Date'].min(), key="start_hist")
+        t_anza = st.date_input("Kuanzia tarehe:", default_start, key="start_hist")
     with col_h2:
-     t_isha = st.date_input("Mpaka tarehe:", df_mauzo_csv['Date'].max(), key="end_hist")
-
+        t_isha = st.date_input("Mpaka tarehe:", default_end, key="end_hist")
 # 3. Logic ya kuchuja (Masking)
-    mask = (df_mauzo_csv['Date'] >= t_anza) & (df_mauzo_csv['Date'] <= t_isha)
+    # 3. Logic ya kuchuja (Masking) kwa kulinganisha tarehe tupu pekee
+    mask = (df_mauzo_csv['Date'].dt.date >= t_anza) & (df_mauzo_csv['Date'].dt.date <= t_isha)
     df_filtered = df_mauzo_csv.loc[mask].copy()
 
 # 4. Onyesha Table
@@ -897,21 +924,36 @@ if check_password():
 
     df_orders = orders_global.copy()
     # Badilisha tarehe kuwa format inayoeleweka
-    df_orders['Tarehe'] = pd.to_datetime(df_orders['Tarehe'], errors='coerce').dt.date
+    # 1. Badilisha tarehe kuwa format inayoeleweka kisha ondoa zilizo tupu
+    df_orders['Tarehe'] = pd.to_datetime(df_orders['Tarehe'], errors='coerce')
+    valid_order_dates = df_orders['Tarehe'].dropna()
+
+    if not valid_order_dates.empty:
+        default_order_start = valid_order_dates.min().date()
+        default_order_end = valid_order_dates.max().date()
+    else:
+        import datetime
+        default_order_start = datetime.date.today()
+        default_order_end = datetime.date.today()
+
     st.write("Chuja Oda Kwa Tarehe")
-    col_date1,col_date2=st.columns(2)
+    col_date1, col_date2 = st.columns(2)
 
     with col_date1:
-       start_date=st.date_input("Kuanzia:",df_orders['Tarehe'].min())
+        start_date = st.date_input("Kuanzia:", default_order_start, key="start_order_hist")
     with col_date2:
-       end_date=st.date_input("Mpaka:",df_orders['Tarehe'].max())
-    st.write("Filter Status")
-    status_options=df_orders['Status'].unique().tolist()
-    status_filter=st.multiselect("Chagua Hali:",options=status_options,default=status_options)
-    
+        end_date = st.date_input("Mpaka:", default_order_end, key="end_order_hist")
 
-    mask = (df_orders['Tarehe']>=start_date)&(df_orders['Tarehe']<=end_date)&(df_orders['Status'].isin(status_filter))
-    df_filtered=df_orders[mask]
+    st.write("Filter Status")
+    status_options = df_orders['Status'].unique().tolist()
+    status_filter = st.multiselect("Chagua Hali:", options=status_options, default=status_options)
+
+    # Logic ya kuchuja (Masking) kwa kulinganisha tarehe pekee (.dt.date)
+    mask = (df_orders['Tarehe'].dt.date >= start_date) & \
+           (df_orders['Tarehe'].dt.date <= end_date) & \
+           (df_orders['Status'].isin(status_filter))
+
+    df_filtered = df_orders[mask]
    
     # 1. Badilisha hapa kuweka "Kinga" ya if
     if not df_filtered.empty:
@@ -1021,7 +1063,7 @@ if check_password():
 
 # Soma faili la mauzo moja kwa moja hapa kwa ajili ya ripoti
     try:
-      df_mauzo_rioti = mauzo_global.copy()
+      df_mauzo_ripoti = mauzo_global.copy()
     except Exception:
      df_mauzo_ripoti = pd.DataFrame()
 
