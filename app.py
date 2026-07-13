@@ -9,6 +9,7 @@ import base64
 from fpdf import FPDF
 from datetime import datetime, timedelta
 from prophet import Prophet
+from streamlit_gsheets import GSheetsConnection
 import logging
 
 
@@ -18,7 +19,21 @@ import logging
 # Hii inazuia Prophet isijaze terminal yako na meseji nyingi za kodi zisizo na lazima
 logging.getLogger('prophet').setLevel(logging.WARNING)
 
+conn = st.connection("gsheets", type=GSheetsConnection)
 
+try:
+    mauzo_global = conn.read(worksheet="mauzo")
+    stoo_global = conn.read(worksheet="stoo")
+    orders_global = conn.read(worksheet="orders")
+except Exception as e:
+    st.error(f"Hitilafu ya Mtandao: {e}")
+    mauzo_global = pd.DataFrame(columns=['Date', 'Category', 'Qty', 'Price', 'Total', 'Profit'])
+    stoo_global = pd.DataFrame(columns=['Category', 'Total_Stock', 'Buying_Price'])
+    orders_global = pd.DataFrame(columns=['Tarehe', 'Mteja', 'Simu', 'Bidhaa', 'Qty', 'Advanced', 'Status', 'Location'])
+
+df = mauzo_global.copy()
+df_stoo = stoo_global.copy()
+df_orders = orders_global.copy()
 
 def piga_utabiri_wa_faida(df, siku_za_mbele):
     try:
@@ -75,14 +90,11 @@ def save_inventory():
       bei = st.session_state.get('prices',{}).get(bidhaa,0)
       data.append({"Category":bidhaa,"Total_Stock":kiasi,"Buying_Price":bei})
       new_df = pd.DataFrame(data)
-      new_df.to_csv('stoo_data.csv',index=False)
+      conn.update(worksheet="stoo", data=new_df)
 
 def load_inventory():
-   try:
-      df = pd.read_csv('stoo_data.csv')
-      return df
-   except FileNotFoundError:
-      return pd.DataFrame(columns=['Category','Total_Stock','Buying_Price'])
+   return stoo_global.copy() if not stoo_global.empty else pd.DataFrame(columns=['Category', 'Total_Stock', 'Buying_Price'])
+      
    
 def style_status(val):
    if val=='Pending':
@@ -100,8 +112,8 @@ def calculate_inventory_value():
    
    try:
         #1. Soma data mpya yenye Buying_Price
-        df_stoo = pd.read_csv('stoo_data.csv')
-        df_mauzo = pd.read_csv('mauzo_data.csv')
+        df_stoo = stoo_global.copy()
+        df_mauzo = mauzo_global.copy()
          
         #soma data hakikisha majina ya bidhaa yanafanana
         df_stoo['Category']=df_stoo['Category'].str.strip().str.lower()
@@ -260,7 +272,7 @@ if check_password():
  st.title("📊 Prophet Dashboard  - KWA SHIRIMA Store")
 
 # 1. Pakia Dat
- df = pd.read_csv('mauzo_data.csv')
+ df = mauzo_global.copy()
  try:
    # 1. Hifadhi inventory kwenye session_state ili isifutike
     if 'inventory_awal' not in st.session_state:
@@ -341,7 +353,7 @@ if check_password():
     st.sidebar.divider()
  
     # 1. Pakia dictionary ya bei
-    df_stoo = pd.read_csv('stoo_data.csv')
+    df_stoo = stoo_global.copy()
     bei_kununua_dict = dict(zip(df_stoo['Category'], df_stoo['Buying_Price']))
 
     st.sidebar.header("📝 Ingiza Mauzo")
@@ -519,8 +531,8 @@ if check_password():
     st.sidebar.subheader("📦 Ongeza Mzigo Mpya")
     
     #soma fail la stoo kupsta list kamil ya bidhaa
-    df_stoo_list = pd.read_csv('stoo_data.csv')
-    list_ya_bidhaa = df_stoo['Category'].unique().tolist()
+    df_stoo_list = stoo_global.copy()
+    list_ya_bidhaa = df_stoo_list['Category'].unique().tolist()
 
 # 1. Tengeneza Form ya kuingiza mzigo
     with st.sidebar.form("stock_form"):
@@ -530,7 +542,7 @@ if check_password():
     
     if submit_stock:
         # 1. Soma faili la stoo
-        df_stoo = pd.read_csv('stoo_data.csv')
+        df_stoo = stoo_global.copy()
         
         # 2. Tafuta mstari wa bidhaa
         mask = df_stoo['Category'] == bidhaa_mpya
@@ -542,7 +554,7 @@ if check_password():
             
             # B. SASISHA CSV MOJA KWA MOJA (Usiguse bei hapa ili isirudi 0)
             df_stoo.loc[mask, 'Total_Stock'] = idadi_mpya
-            df_stoo.to_csv('stoo_data.csv', index=False)
+            conn.update(worksheet="stoo", data=df_stoo)
             
             # C. SASISHA SESSION STATE ILI GRAPH IONYESHE NAMBA MPYA
             if 'inventory_awal' in st.session_state:
@@ -567,7 +579,7 @@ if check_password():
 
     if submit_new and jina_la_bidhaa:
     # 1. Soma faili la sasa
-       stoo_df = pd.read_csv('stoo_data.csv')
+       df_stoo = stoo_global.copy()
     
     # 2. Tengeneza mstari wa bidhaa mpya
        new_row = {
@@ -577,10 +589,10 @@ if check_password():
        }
     
     # 3. Ongeza bidhaa mpya kwenye DataFrame
-       stoo_df = pd.concat([stoo_df, pd.DataFrame([new_row])], ignore_index=True)
+       df_stoo = pd.concat([df_stoo, pd.DataFrame([new_row])], ignore_index=True)
     
     # 4. HIFADHI KWA NGUVU KWENYE CSV (Hii inazuia isipotee ukirefresh)
-       stoo_df.to_csv('stoo_data.csv', index=False)
+       conn.update(worksheet="stoo", data=df_stoo)
     
     # 5. Sasisha session state ili ionekane kwenye graph na selectbox papo hapo
        if 'inventory_awal' in st.session_state:
@@ -632,8 +644,7 @@ if check_password():
 
     with col1:
            st.subheader("Mwenendo wa Mauzo ya Nyuma")
-           df_graph = pd.read_csv('mauzo_data.csv')
-
+           df_graph = mauzo_global.copy()
            df_graph['Date']=pd.to_datetime(df_graph['Date']).dt.date
 
            daily_sales=df_graph.groupby('Date')['Total'].sum().reset_index().sort_values('Date')
@@ -644,7 +655,7 @@ if check_password():
 
     with col2:
         # Hakikisha unatumia jina sahihi la faili lako la CSV
-        df_mauzo_csv = pd.read_csv('mauzo_data.csv')
+        df_mauzo_csv = mauzo_global.copy()
 
 # Muhimu: Badilisha column ya Date iwe tarehe halisi ili Prophet isilete error
         df_mauzo_csv['Date'] = pd.to_datetime(df_mauzo_csv['Date']).dt.date
@@ -792,11 +803,11 @@ if check_password():
     st.markdown("### 📋 Mchanganuo wa Stoo (Inventory)")
 
     # 1. Soma data za Stoo
-    df_stoo = pd.read_csv('stoo_data.csv')
+    df_stoo = stoo_global.copy()
 
     # 2. Soma data za Mauzo na piga hesabu ya jumla ya kila bidhaa
     try:
-      df_mauzo = pd.read_csv('mauzo_data.csv')
+      df_mauzo = mauzo_global.copy()
       mauzo_sum = df_mauzo.groupby('Category')['Qty'].sum().reset_index()
       mauzo_sum.columns = ['Category', 'Zilizouzwa']
     except:
@@ -868,9 +879,9 @@ if check_password():
                 'Location':location_mpya
              }
 
-             df_orders=pd.read_csv('orders_data.csv')
+             df_orders = orders_global.copy()
              df_updated=pd.concat([df_orders,pd.DataFrame([mpya])],ignore_index=True)
-             df_updated.to_csv('orders_data.csv',index=False)
+             conn.update(worksheet="orders", data=df_updated)
 
              st.success(f"Oda ya {mteja_mpya}imepokelewa!")
              st.rerun()
@@ -882,7 +893,7 @@ if check_password():
     #soma data ya sas
 
 
-    df_orders = pd.read_csv('orders_data.csv')
+    df_orders = orders_global.copy()
     # Badilisha tarehe kuwa format inayoeleweka
     df_orders['Tarehe'] = pd.to_datetime(df_orders['Tarehe'], errors='coerce').dt.date
     st.write("Chuja Oda Kwa Tarehe")
@@ -891,7 +902,7 @@ if check_password():
     with col_date1:
        start_date=st.date_input("Kuanzia:",df_orders['Tarehe'].min())
     with col_date2:
-       end_date=st.date_input("Mpaka:",df_orders['Tarehe'].min())
+       end_date=st.date_input("Mpaka:",df_orders['Tarehe'].max())
     st.write("Filter Status")
     status_options=df_orders['Status'].unique().tolist()
     status_filter=st.multiselect("Chagua Hali:",options=status_options,default=status_options)
@@ -922,7 +933,7 @@ if check_password():
           ongeza_hela=st.number_input("Ongeza Pesa Ya Advance(TZS):",min_value=0,step=5000)
 
           if st.button("Update Status"):
-             df_temp = pd.read_csv('orders_data.csv')
+             df_temp = orders_global.copy()
 
              idx = df_temp[df_temp['Mteja']==target_customer].index
 
@@ -934,7 +945,7 @@ if check_password():
                 df_temp.at[idx[0],'Advanced']=hela_ya_jumla
                 df_temp.at[idx[0],'Status']=new_status
 
-                df_temp.to_csv('orders_data.csv',index=False)
+                conn.update(worksheet="orders", data=df_temp)
              
                 st.success(f"Oda ya {target_customer}sasa ni {new_status}")
                 st.rerun()
@@ -945,7 +956,7 @@ if check_password():
           #futa oda kabisa
           if st.button("Futa Oda Hii"):
              df_orders=df_orders[df_orders['Mteja']!=target_customer]
-             df_orders.to_csv('orders_data.csv',index=False)
+             conn.update(worksheet="orders", data=df_orders)
              st.warning(f"Oda ya {target_customer}imefutwa!")
              st.rerun()
 
@@ -1008,7 +1019,7 @@ if check_password():
 
 # Soma faili la mauzo moja kwa moja hapa kwa ajili ya ripoti
     try:
-      df_mauzo_ripoti = pd.read_csv('mauzo_data.csv')
+      df_mauzo_rioti = mauzo_global.copy()
     except Exception:
      df_mauzo_ripoti = pd.DataFrame()
 
@@ -1058,7 +1069,7 @@ if check_password():
 
         # D. Soma faili la stoo kujua vitu vilivyobaki stoo kwa ujumla wake
         try:
-            df_stoo_real = pd.read_csv('stoo_data.csv')
+            df_stoo_real = stoo_global.copy()
             vitu_vya_stoo = df_stoo_real['Total_Stock'].sum()
         except Exception:
             vitu_vya_stoo = 0
