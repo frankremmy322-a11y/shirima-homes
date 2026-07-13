@@ -414,7 +414,7 @@ if check_password():
        new_row = pd.DataFrame([[
             new_date.strftime("%Y-%m-%d"), new_category, new_qty, 
             unit_price, new_total, profit_made
-        ]], columns=['Date', 'Category', 'Qty', 'Price', 'Total', 'Profit'])
+        ]], columns=['Date', 'Category', 'Qty', 'Unit_Price', 'Total', 'Profit'])
         
        # 1. Jiunge na data ya zamani iliyopo sasa hivi mtandaoni
             
