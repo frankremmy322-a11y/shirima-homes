@@ -416,10 +416,16 @@ if check_password():
             unit_price, new_total, profit_made
         ]], columns=['Date', 'Category', 'Qty', 'Price', 'Total', 'Profit'])
         
-       new_row.to_csv('mauzo_data.csv', mode='a', index=False, header=False)
-       st.success(f"Imesave! Faida: {profit_made:,.0f}")
+       # 1. Jiunge na data ya zamani iliyopo sasa hivi mtandaoni
+            
+       updated_mauzo = pd.concat([mauzo_global, new_row], ignore_index=True)
+
+# 2. Sukuma data yote iliyohuishwa kwenda Google Sheets
+       conn.update(worksheet="mauzo", data=updated_mauzo)
+
+       st.success(f"Imesave Google Sheets! Faida: {profit_made:,.0f}")
        st.rerun()
-        
+         
 
     # 2. Onyesha kwenye Sidebar (Pemben Kabisa)
     st.sidebar.markdown("---") # Mstari wa kutenganisha
