@@ -16,20 +16,17 @@ import logging
 
 
 
+
+
 # Hii inazuia Prophet isijaze terminal yako na meseji nyingi za kodi zisizo na lazima
 logging.getLogger('prophet').setLevel(logging.WARNING)
 
 conn = st.connection("gsheets", type=GSheetsConnection)
 
-try:
-    mauzo_global = conn.read(worksheet="mauzo", ttl=0)
-    stoo_global = conn.read(worksheet="stoo", ttl=0)
-    orders_global = conn.read(worksheet="orders", ttl=0)
-except Exception as e:
-    st.error(f"Hitilafu ya Mtandao: {e}")
-    mauzo_global = pd.DataFrame(columns=['Date', 'Category', 'Qty', 'Price', 'Total', 'Profit'])
-    stoo_global = pd.DataFrame(columns=['Category', 'Total_Stock', 'Buying_Price'])
-    orders_global = pd.DataFrame(columns=['Tarehe', 'Mteja', 'Simu', 'Bidhaa', 'Qty', 'Advanced', 'Status', 'Location'])
+
+mauzo_global = conn.read(worksheet="mauzo", ttl=0)
+stoo_global = conn.read(worksheet="stoo", ttl=0)
+orders_global = conn.read(worksheet="orders", ttl=0)
 
 df = mauzo_global.copy()
 df_stoo = stoo_global.copy()
