@@ -897,11 +897,13 @@ if check_password():
 
              bidhaa_mpya_text=st.text_input("Kama Bidhaa ni Mpya,andika apa:")
              location_mpya=st.text_input("Mteja anatokea wapi:")
-
+             # Ongeza mstari huu ndani ya 'with col2':
+            
        with col2:
           qty_mpya=st.number_input("Idadi(Qty)",min_value=1,step=1)
           advanced_mpya=st.number_input("Advanced(TZS)",min_value=0,step=5000)
           hali_mpya = st.selectbox("Hali ya Oda",["Pending","Completed","Canceled"])
+          tarehe_mpya = st.date_input("Chagua Tarehe")
 
           if bidhaa_mpya_text.strip()!="":
              bidhaa_final = bidhaa_mpya_text
@@ -913,7 +915,7 @@ if check_password():
           if st.form_submit_button("Hifadhi Oda"):
            if mteja_mpya and simu_mpya and bidhaa_final:
              mpya={
-                'Tarehe':datetime.datetime.now().strftime("%Y-%m-%d"),
+                'Tarehe':tarehe_mpya.strftime("%Y-%m-%d"),
                 'Mteja':mteja_mpya,
                 'Simu':str(simu_mpya),
                 'Bidhaa':bidhaa_final,
@@ -922,27 +924,26 @@ if check_password():
                 'Status':hali_mpya,
                 'Location':location_mpya
              }
-
-              # 1. Unda DataFrame ya oda mpya
+             # 1. Unda DataFrame ya oda mpya
              new_order_df = pd.DataFrame([mpya])
 
-# 2. Unganisha na data ya zamani (orders_global ndiyo ile uliyoisoma na conn.read)
+# 2. Unganisha na data ya zamani
              df_updated = pd.concat([orders_global, new_order_df], ignore_index=True)
 
-# 3. Kitu muhimu: Geuza DataFrame nzima kuwa string (kama ilivyo kwenye CSV)
+# 3. Kitu muhimu: Geuza DataFrame nzima kuwa string ili kuzuia automatic formatting
              df_updated = df_updated.astype(str)
 
-# 4. Safisha 'NaT' zinazoweza kutokea
-             df_updated = df_updated.replace('NaT', '')
-             df_updated = df_updated.replace('nan', '')
+# 4. Safisha 'NaT' au 'nan' zozote zilizojitokeza wakati wa ku-convert
+             df_updated = df_updated.replace({'NaT': '', 'nan': ''})
 
-# 5. Sasa tuma kwenye Google Sheets
-             conn.update(worksheet="orders", data=df_updated) 
+# 5. Tuma kwenye Google Sheets
+             conn.update(worksheet="orders", data=df_updated)
 
-             st.success(f"Oda ya {mteja_mpya}imepokelewa!")
+# 6. Malizia na ujumbe wa mafanikio na refresh
+             st.success(f"Oda ya {mteja_mpya} imepokelewa!")
              st.rerun()
-          else:
-             st.error("Tafadhali jaza JIna,Simu,na Bidhaa!")
+ 
+        
 
 
 
