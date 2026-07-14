@@ -923,9 +923,16 @@ if check_password():
                 'Location':location_mpya
              }
 
-             df_orders = orders_global.copy()
-             df_updated=pd.concat([df_orders,pd.DataFrame([mpya])],ignore_index=True)
+             # 1. Unda DataFrame ya oda mpya
+             new_order_df = pd.DataFrame([mpya])
+    
+    # 2. Hakikisha tarehe ni string (kuondoa 00:00:00)
+             new_order_df['Tarehe'] = new_order_df['Tarehe'].astype(str)
+    
+    # 3. Unganisha na data ya zamani na tuma kwenye Google Sheets
+             df_updated = pd.concat([orders_global, new_order_df], ignore_index=True)
              conn.update(worksheet="orders", data=df_updated)
+
 
              st.success(f"Oda ya {mteja_mpya}imepokelewa!")
              st.rerun()
