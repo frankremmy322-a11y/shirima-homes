@@ -319,7 +319,7 @@ if check_password():
     # 1. Maandalizi ya tarehe
     df['Date'] = pd.to_datetime(df['Date']).dt.date
     #leo_halisi = df['Date'].max()
-    leo_halisi = datetime.now().date()
+    leo_halisi = dt.now().date()
 
      # 2. Dropdown ya kuchagua kipindi
     pamoja = st.selectbox("Linganisha Mauzo ya:", ["Siku (Leo vs Jana)", "Wiki (Hii vs Iliyopita)", "Mwezi (Huu vs Uliopita)"])
