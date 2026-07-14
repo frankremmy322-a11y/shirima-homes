@@ -990,7 +990,7 @@ if check_password():
 
     # Logic ya kuchuja (Masking) kwa kulinganisha tarehe pekee (.dt.date)
     # Hakikisha safu ya 'Tarehe' ni datetime na jaza tupu ili isiwe na NaT
-    temp_dates = pd.to_datetime(df_orders['Tarehe'], errors='coerce')
+    temp_dates = pd.to_datetime(df_orders['Tarehe'], format='%Y-%m-%d', errors='coerce')
 
     # Fanya masking kwa kutumia series iliyosafishwa
     mask = (temp_dates.dt.date >= start_date) & \
