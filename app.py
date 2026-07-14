@@ -923,22 +923,21 @@ if check_password():
                 'Location':location_mpya
              }
 
-             # 1. Unda DataFrame ya oda mpya
+              # 1. Unda DataFrame ya oda mpya
              new_order_df = pd.DataFrame([mpya])
-    
-    # 2. Lazimisha 'Tarehe' kuwa string safi
-             new_order_df['Tarehe'] = new_order_df['Tarehe'].astype(str)
-    
-    # 3. Unganisha na data ya zamani
-             df_updated = pd.concat([orders_global, new_order_df], ignore_index=True)
-    
-    # 4. HAPA NDIPO UPAREKEBISHE: 
-    # Lazimisha safu nzima ya 'Tarehe' kuwa string kabla ya kuiandika kwenye sheet
-             df_updated['Tarehe'] = df_updated['Tarehe'].astype(str)
-    
-    # 5. Tuma kwenye Google Sheets
-             conn.update(worksheet="orders", data=df_updated)
 
+# 2. Unganisha na data ya zamani (orders_global ndiyo ile uliyoisoma na conn.read)
+             df_updated = pd.concat([orders_global, new_order_df], ignore_index=True)
+
+# 3. Kitu muhimu: Geuza DataFrame nzima kuwa string (kama ilivyo kwenye CSV)
+             df_updated = df_updated.astype(str)
+
+# 4. Safisha 'NaT' zinazoweza kutokea
+             df_updated = df_updated.replace('NaT', '')
+             df_updated = df_updated.replace('nan', '')
+
+# 5. Sasa tuma kwenye Google Sheets
+             conn.update(worksheet="orders", data=df_updated) 
 
              st.success(f"Oda ya {mteja_mpya}imepokelewa!")
              st.rerun()
