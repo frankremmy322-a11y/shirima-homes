@@ -3,8 +3,6 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 import datetime
-from datetime import timedelta
-from datetime import datetime
 import base64
 from fpdf import FPDF
 from datetime import datetime, timedelta
@@ -154,7 +152,7 @@ def calculate_inventory_value():
         return thamani_kuu,idadi_kuu
    except Exception as e:
         print(f"Error kwenye Thamani: {e}")
-   return 0
+   return 0, 0
 
 pesa_stoo,vitu_stoo=calculate_inventory_value()
   
@@ -307,6 +305,7 @@ if check_password():
     df_stock = pd.DataFrame(list(st.session_state.inventory_awal.items()), columns=['Category', 'Total_Stock'])
 
 # 2. Piga hesabu ya mauzo (Tumia reset_index TU, usiweke .to_dict())
+    st.write("majina ya colums:", df.columns.tolist())
     mauzo_kwa_bidhaa = df.groupby('Category')['Qty'].sum().reset_index()
 
 # 3. Unganisha meza mbili (Hapa sasa itakubali bila error)
@@ -1086,7 +1085,7 @@ if check_password():
     
     # Hakikisha Tarehe ipo kwenye format sahihi
      df_mauzo_ripoti['Date'] = pd.to_datetime(df_mauzo_ripoti['Date']).dt.date
-     leo = datetime.now().date()
+     leo = datetime.datetime.now().date()
     
     # 2. Logic ya kuchuja data ya mauzo kulingana na kipindi ulichochagua
      if aina_ya_ripoti == "Ripoti ya Siku (Leo)":
