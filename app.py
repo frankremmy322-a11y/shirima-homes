@@ -305,7 +305,7 @@ if check_password():
     df_stock = pd.DataFrame(list(st.session_state.inventory_awal.items()), columns=['Category', 'Total_Stock'])
 
 # 2. Piga hesabu ya mauzo (Tumia reset_index TU, usiweke .to_dict())
-    st.write("majina ya colums:", df.columns.tolist())
+    
     mauzo_kwa_bidhaa = df.groupby('Category')['Qty'].sum().reset_index()
 
 # 3. Unganisha meza mbili (Hapa sasa itakubali bila error)
@@ -315,10 +315,6 @@ if check_password():
     df_hali_ya_stoo['iliyobaki'] = df_hali_ya_stoo['Total_Stock'] - df_hali_ya_stoo['Qty']
       
     df['Date'] = pd.to_datetime(df['Date'])
-    
-    # Group data kwa siku kwa ajili ya prediction
-    daily_sales = df.groupby('Date')['Total'].sum().reset_index()
-    daily_sales['Day_Ordinal'] = daily_sales['Date'].apply(lambda x: x.toordinal())
 
     # 1. Maandalizi ya tarehe
     df['Date'] = pd.to_datetime(df['Date']).dt.date
