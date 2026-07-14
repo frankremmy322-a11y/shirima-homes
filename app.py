@@ -902,7 +902,7 @@ if check_password():
           if st.form_submit_button("Hifadhi Oda"):
            if mteja_mpya and simu_mpya and bidhaa_final:
              mpya={
-                'Tarehe':datetime.now().strftime("%Y-%m-%d"),
+                'Tarehe':datetime.datetime.now().strftime("%Y-%m-%d"),
                 'Mteja':mteja_mpya,
                 'Simu':str(simu_mpya),
                 'Bidhaa':bidhaa_final,
