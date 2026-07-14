@@ -964,8 +964,12 @@ if check_password():
     status_filter = st.multiselect("Chagua Hali:", options=status_options, default=status_options)
 
     # Logic ya kuchuja (Masking) kwa kulinganisha tarehe pekee (.dt.date)
-    mask = (df_orders['Tarehe'].dt.date >= start_date) & \
-           (df_orders['Tarehe'].dt.date <= end_date) & \
+    # Hakikisha safu ya 'Tarehe' ni datetime na jaza tupu ili isiwe na NaT
+    temp_dates = pd.to_datetime(df_orders['Tarehe'], errors='coerce')
+
+    # Fanya masking kwa kutumia series iliyosafishwa
+    mask = (temp_dates.dt.date >= start_date) & \
+           (temp_dates.dt.date <= end_date) & \
            (df_orders['Status'].isin(status_filter))
 
     df_filtered = df_orders[mask]
