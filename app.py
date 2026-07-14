@@ -511,8 +511,8 @@ if check_password():
     st.sidebar.subheader("🚀 Low Stock Alerts")
 
     def get_low_stock_data():
-        df_stoo = pd.read_csv('stoo_data.csv')
-        df_mauzo= pd.read_csv('mauzo_data.csv')
+        df_stoo = stoo_global.copy()
+        df_mauzo= mauzo_global.copy()
 
         #safisha data
         df_stoo['Category']=df_stoo['Category'].astype(str).str.strip()
