@@ -34,7 +34,8 @@ try:
     mauzo_global = conn.read(worksheet="mauzo", ttl=0)
     stoo_global = conn.read(worksheet="stoo", ttl=0)
     orders_global = conn.read(worksheet="orders", ttl=0)
-    orders_global['Tarehe'] = pd.to_datetime(orders_global['Tarehe'], errors='coerce')
+    orders_global['Tarehe'] = orders_global['Tarehe'].astype(str)
+    orders_global['Tarehe'] = orders_global['Tarehe'].str.replace('00:00:00', '').str.replace(' 00:0', '')
 except Exception as e:
     st.error(f"Hitilafu ya Mtandao: {e}")
     # Kutengeneza DataFrame tupu ili app isife kabisa chini
@@ -915,7 +916,7 @@ if check_password():
           if st.form_submit_button("Hifadhi Oda"):
            if mteja_mpya and simu_mpya and bidhaa_final:
              mpya={
-                'Tarehe':tarehe_mpya.strftime("%Y-%m-%d"),
+                'Tarehe':tarehe_mpya.strftime("%d"),
                 'Mteja':mteja_mpya,
                 'Simu':str(simu_mpya),
                 'Bidhaa':bidhaa_final,
