@@ -5,11 +5,11 @@ import matplotlib.pyplot as plt
 import datetime
 import base64
 from fpdf import FPDF
-from datetime import datetime, timedelta
+from datetime import datetime as dt, timedelta
 from prophet import Prophet
 from streamlit_gsheets import GSheetsConnection
 import logging
-import datetime as dt
+
 
 
 
@@ -1092,7 +1092,7 @@ if check_password():
     
     # Hakikisha Tarehe ipo kwenye format sahihi
      df_mauzo_ripoti['Date'] = pd.to_datetime(df_mauzo_ripoti['Date']).dt.date
-     leo = datetime.datetime.now().date()
+     leo = dt.now().date()
     
     # 2. Logic ya kuchuja data ya mauzo kulingana na kipindi ulichochagua
      if aina_ya_ripoti == "Ripoti ya Siku (Leo)":
