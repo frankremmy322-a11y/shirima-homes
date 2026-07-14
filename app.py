@@ -926,11 +926,17 @@ if check_password():
              # 1. Unda DataFrame ya oda mpya
              new_order_df = pd.DataFrame([mpya])
     
-    # 2. Hakikisha tarehe ni string (kuondoa 00:00:00)
+    # 2. Lazimisha 'Tarehe' kuwa string safi
              new_order_df['Tarehe'] = new_order_df['Tarehe'].astype(str)
     
-    # 3. Unganisha na data ya zamani na tuma kwenye Google Sheets
+    # 3. Unganisha na data ya zamani
              df_updated = pd.concat([orders_global, new_order_df], ignore_index=True)
+    
+    # 4. HAPA NDIPO UPAREKEBISHE: 
+    # Lazimisha safu nzima ya 'Tarehe' kuwa string kabla ya kuiandika kwenye sheet
+             df_updated['Tarehe'] = df_updated['Tarehe'].astype(str)
+    
+    # 5. Tuma kwenye Google Sheets
              conn.update(worksheet="orders", data=df_updated)
 
 
