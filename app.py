@@ -19,11 +19,22 @@ import logging
 # Hii inazuia Prophet isijaze terminal yako na meseji nyingi za kodi zisizo na lazima
 logging.getLogger('prophet').setLevel(logging.WARNING)
 
+
+
+@st.cache_data(ttl=600)  # Data itahifadhiwa kwa dakika 10
+def load_data():
+
+    
+    # Hapa ndipo unapoweka code yako ya kusoma Google Sheets
+    # mfano: return pd.read_csv(...)
+    pass
+
 try:
     conn = st.connection("gsheets", type=GSheetsConnection)
     mauzo_global = conn.read(worksheet="mauzo", ttl=0)
     stoo_global = conn.read(worksheet="stoo", ttl=0)
     orders_global = conn.read(worksheet="orders", ttl=0)
+    orders_global['Tarehe'] = pd.to_datetime(orders_global['Tarehe'], dayfirst=True, errors='coerce')
 except Exception as e:
     st.error(f"Hitilafu ya Mtandao: {e}")
     # Kutengeneza DataFrame tupu ili app isife kabisa chini
@@ -305,7 +316,7 @@ if check_password():
     df_stock = pd.DataFrame(list(st.session_state.inventory_awal.items()), columns=['Category', 'Total_Stock'])
 
 # 2. Piga hesabu ya mauzo (Tumia reset_index TU, usiweke .to_dict())
-    
+    st.write(df.columns)
     mauzo_kwa_bidhaa = df.groupby('Category')['Qty'].sum().reset_index()
 
 # 3. Unganisha meza mbili (Hapa sasa itakubali bila error)
