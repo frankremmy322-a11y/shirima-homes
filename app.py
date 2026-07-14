@@ -34,7 +34,7 @@ try:
     mauzo_global = conn.read(worksheet="mauzo", ttl=0)
     stoo_global = conn.read(worksheet="stoo", ttl=0)
     orders_global = conn.read(worksheet="orders", ttl=0)
-    orders_global['Tarehe'] = pd.to_datetime(orders_global['Tarehe'], dayfirst=True, errors='coerce')
+    orders_global['Tarehe'] = pd.to_datetime(orders_global['Tarehe'], errors='coerce')
 except Exception as e:
     st.error(f"Hitilafu ya Mtandao: {e}")
     # Kutengeneza DataFrame tupu ili app isife kabisa chini
@@ -913,7 +913,7 @@ if check_password():
           if st.form_submit_button("Hifadhi Oda"):
            if mteja_mpya and simu_mpya and bidhaa_final:
              mpya={
-                'Tarehe':datetime.datetime.now().strftime("%d/%m/%Y"),
+                'Tarehe':datetime.datetime.now().strftime("%Y-%m-%d"),
                 'Mteja':mteja_mpya,
                 'Simu':str(simu_mpya),
                 'Bidhaa':bidhaa_final,
@@ -1177,7 +1177,7 @@ if check_password():
         pdf.set_font("Helvetica", "B", 12)
         pdf.set_text_color(74, 85, 104) # Kijivu
         pdf.cell(200, 8, txt=f"Ripoti ya Biashara: {aina_ya_ripoti}", ln=True, align="C")
-        pdf.cell(200, 8, txt=f"Tarehe ya Ripoti: {leo.strftime('%d-%m-%Y')}", ln=True, align="C")
+        pdf.cell(200, 8, txt=f"Tarehe ya Ripoti: {leo.strftime("%Y-%m-%d")}", ln=True, align="C")
         pdf.ln(10) # Nafasi ya chini (Spacer)
         
         # 2. SEHEMU YA 1: MUHTASARI WA MAPATO (Table ya Kwanza)
