@@ -927,9 +927,20 @@ if check_password():
 
 
     df_orders = orders_global.copy()
+
     # Badilisha tarehe kuwa format inayoeleweka
     # 1. Badilisha tarehe kuwa format inayoeleweka kisha ondoa zilizo tupu
     df_orders['Tarehe'] = pd.to_datetime(df_orders['Tarehe'], errors='coerce')
+    
+    
+    # --- ONGEZA HII SEHEMU YA KUSAFISHA DATA ---
+    # Badilisha namba kuwa integer ili kuondoa .00000
+    df_orders['Qty'] = pd.to_numeric(df_orders['Qty'], errors='coerce').fillna(0).astype(int)
+    df_orders['Advanced'] = pd.to_numeric(df_orders['Advanced'], errors='coerce').fillna(0).astype(int)
+    
+    # Badilisha Simu kuwa string ili isipoteze sifuri za mwanzo
+    df_orders['Simu'] = df_orders['Simu'].astype(str).str.replace('.0', '', regex=False)
+    # --------------------------------------------
     valid_order_dates = df_orders['Tarehe'].dropna()
 
     if not valid_order_dates.empty:
@@ -961,7 +972,7 @@ if check_password():
    
     # 1. Badilisha hapa kuweka "Kinga" ya if
     if not df_filtered.empty:
-       total_advance=df_filtered['Advanced'].sum()
+       total_advance= int(df_filtered['Advanced'].sum())
        st.metric(label=f"Jumla ya Advance({start_date} mpaka {end_date})",value=f"{total_advance:,.0f}TZS")
     else:
        st.info("Hakuna Oda ya Kipindi iki")
