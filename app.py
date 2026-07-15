@@ -1248,7 +1248,7 @@ if check_password():
 
 # 4. Bidhaa 3 Zinazoongoza
         pdf.set_font("Times", "B", 12)
-        pdf.set_text_color(26, 54, 93)
+        pdf.set_text_color(0, 0, 0)
         pdf.cell(200, 8, txt="Top 3: Bidhaa Zinazouza Zaidi", ln=True)
         pdf.set_font("Times", "", 11)
         pdf.set_text_color(0, 0, 0)
