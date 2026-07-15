@@ -1224,12 +1224,19 @@ if check_password():
         pdf.ln(10)
 
 # 3. Jumla ya Mauzo (Maandishi ya kawaida)
+        # --- JUMLA YA MAUZO NA FAIDA (Kushoto) ---
+        pdf.ln(10) # Nafasi kidogo kutoka kwenye Tarehe
         pdf.set_font("Times", "B", 14)
         pdf.set_text_color(0, 0, 0)
-        pdf.cell(200, 8, txt="Jumla ya Mauzo ya Siku", ln=True, align="C")
-        pdf.set_font("Times", "B", 20)
-        pdf.set_text_color(26, 54, 93)
-        pdf.cell(200, 10, txt=f"{jumla_mauzo:,.0f} TZS", ln=True, align="C")
+
+# Jumla ya Mauzo
+        pdf.cell(200, 8, txt=f"Jumla ya Mauzo ya Siku: {jumla_mauzo:,.0f} TZS", ln=True, align="L")
+
+# Faida ya Siku (Inakaa chini yake)
+        pdf.set_font("Times", "B", 14)
+        pdf.cell(200, 8, txt=f"Faida ya Siku: {jumla_profit:,.0f} TZS", ln=True, align="L")
+
+        pdf.ln(10) # Nafasi kabla ya kuanza sehemu nyingine
         pdf.ln(10)
 
 # 4. Bidhaa 3 Zinazoongoza
