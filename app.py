@@ -404,7 +404,7 @@ if check_password():
      mauzo_ya_sasa = mauzo_global[mauzo_global['Category'] == new_category]['Qty'].sum()
      jumla_stoo = stoo_global[stoo_global['Category'] == new_category]['Total_Stock'].sum()   
      stock_qty = int(jumla_stoo) - int(mauzo_ya_sasa)
-   
+
 
 
 
@@ -415,29 +415,33 @@ if check_password():
      tarehe_mpya = st.date_input("Tarehe", value=datetime.date.today())
      new_qty = st.number_input("Idadi (Qty)", min_value=1, step=1)
      new_total = st.number_input("Jumla ya Pesa uliyopokea (TZS)", min_value=0, step=5000)
-    
-     submitted = st.form_submit_button("Hifadhi Mauzo")
-    
-    if submitted:
-       if new_qty > stock_qty:
-          st.error(f"Huwezi kuuza {new_qty}, zimebaki {stock_qty} tu stoo!")
-       else:
-        profit_made = new_total - (current_price * new_qty)
-        unit_price = int(new_total / new_qty) if new_qty > 0 else 0
-        
-        new_row = pd.DataFrame([[
-            tarehe_mpya.strftime("%Y-%m-%d"), new_category, new_qty, 
-            unit_price, new_total, profit_made
-         ]], columns=['Date', 'Category', 'Qty', 'Unit_Price', 'Total', 'Profit'])
-        
-       # 1. Jiunge na data ya zamani iliyopo sasa hivi mtandaoni
-            
-        updated_mauzo = pd.concat([mauzo_global, new_row], ignore_index=True)
-       
-        conn.update(worksheet="mauzo", data=updated_mauzo)
-        st.rerun()
-    
 
+     # 3. Logic ya button ya hifadhi (Itaonekana tu kama stock ipo)
+     if stock_qty > 0:
+        submitted = st.form_submit_button("Hifadhi Mauzo")
+        
+        if submitted:
+            # Mahesabu ya faida na bei
+            profit_made = new_total - (current_price * new_qty)
+            unit_price = int(new_total / new_qty) if new_qty > 0 else 0
+            
+            # Kutengeneza row mpya
+            new_row = pd.DataFrame([[
+                tarehe_mpya.strftime("%Y-%m-%d"), new_category, new_qty, 
+                unit_price, new_total, profit_made
+            ]], columns=['Date', 'Category', 'Qty', 'Unit_Price', 'Total', 'Profit'])
+            
+            # Kuunganisha data na kui-update kwenye Google Sheets
+            updated_mauzo = pd.concat([mauzo_global, new_row], ignore_index=True)
+            conn.update(worksheet="mauzo", data=updated_mauzo)
+            st.success("Mauzo yamehifadhiwa!")
+            st.rerun()
+     else:
+        # Ujumbe kama bidhaa imeisha
+        st.error("❌ Bidhaa hii imeisha stoo (Out of Stock)")
+    
+    
+     
 # 2. Sukuma data yote iliyohuishwa kwenda Google Sheets
     # 2. Sukuma data yote iliyohuishwa kwenda Google Sheets
      
