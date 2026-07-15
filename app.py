@@ -291,10 +291,17 @@ def check_password():
       st.session_state["welcomed"] = True
 
     # Hapa tunaweka button ya logout upande wa pembeni (sidebar)
-    if st.sidebar.button("LOGOUT"):
-        st.session_state["password_correct"] = False
-        st.session_state["welcomed"] = False
-        st.rerun()
+    # Kwenye ile button ya LOGOUT ndani ya sidebar
+    if st.sidebar.button("LOGOUT"): 
+    # Futa kabisa hizi keys ili Streamlit ianze upya kama mara ya kwanza
+       if 'password_correct' in st.session_state:
+        del st.session_state['password_correct']
+       if 'welcomed' in st.session_state:
+        del st.session_state['welcomed']
+       if 'password' in st.session_state:
+        del st.session_state['password'] # Hii ndiyo inafuta ile input ya password
+    
+    st.rerun()
     
    return True
 
