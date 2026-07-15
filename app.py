@@ -1230,11 +1230,11 @@ if check_password():
         pdf.set_text_color(0, 0, 0)
 
 # Jumla ya Mauzo
-        pdf.cell(200, 8, txt=f"Jumla ya Mauzo ya Siku: {jumla_mauzo:,.0f} TZS", ln=True, align="L")
+        pdf.cell(200, 8, txt=f"Jumla ya Mauzo ya Siku {jumla_mauzo:,.0f} TZS", ln=True)
 
 # Faida ya Siku (Inakaa chini yake)
         pdf.set_font("Times", "B", 14)
-        pdf.cell(200, 8, txt=f"Faida ya Siku: {jumla_profit:,.0f} TZS", ln=True, align="L")
+        pdf.cell(200, 8, txt=f"Faida ya Siku {jumla_profit:,.0f} TZS", ln=True)
 
         pdf.ln(10) # Nafasi kabla ya kuanza sehemu nyingine
         pdf.ln(10)
