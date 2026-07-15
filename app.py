@@ -1231,7 +1231,7 @@ if check_password():
         pdf.set_text_color(0, 0, 0)
 
 # Jumla ya Mauzo
-        pdf.cell(200, 7, txt=f"Jumla ya Mauzo ya Siku: {aina_ya_ripoti}", ln=True, align="L")
+        pdf.cell(200, 7, txt="Jumla ya Mauzo:", ln=True, align="L")
         pdf.set_font("Times", "B", 14) # Bold kwa namba tu kama unataka, au ondoa "B" kama unataka iwe ya kawaida
         pdf.cell(200, 7, txt=f"{jumla_mauzo:,.0f} TZS", ln=True, align="L")
 
@@ -1239,7 +1239,7 @@ if check_password():
 
 # Faida ya Siku
         pdf.set_font("Times", "", 12) # Maandishi ya kawaida
-        pdf.cell(200, 7, txt=f"Faida ya : {aina_ya_ripoti}", ln=True, align="L")
+        pdf.cell(200, 7, txt="Jumla ya Faida :", ln=True, align="L")
         pdf.set_font("Times", "B", 14) # Bold kwa namba
         pdf.cell(200, 7, txt=f"{jumla_profit:,.0f} TZS", ln=True, align="L")
 
@@ -1309,7 +1309,8 @@ if check_password():
 
 # --- FOOTER (Hii ikae hapa baada ya table) ---
         pdf.set_font("Times", "I", 8)
-        pdf.cell(0, 10, txt="This software created by Frank Shirima @all rights reserved", ln=True, align="C")
+        pdf.cell(0, 10, txt="This software created by Frank Shirima ", ln=True, align="C")
+        pdf.cell(0, 10, txt=" @all rights reserved", ln=True, align="C")
 
       
             
