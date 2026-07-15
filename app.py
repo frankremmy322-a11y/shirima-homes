@@ -11,11 +11,6 @@ from streamlit_gsheets import GSheetsConnection
 import logging
 
 
-# WEKA HII HAPA JUU KABISA
-if 'password_correct' not in st.session_state:
-    st.session_state['password_correct'] = False
-if 'welcomed' not in st.session_state:
-    st.session_state['welcomed'] = False
 
 
 
@@ -265,22 +260,7 @@ def check_password():
       return False
 
    elif not st.session_state['password_correct']:
-     # 1. Kama ametoka LOGOUT, onyesha login page safi (pamoja na picha)
-     if st.session_state.get('is_logout', False):
-        st.info("System Locked: Waiting for Authorization From Frank Shirima")
-        st.text_input("ENTER ACCESS CODE", type="password", on_change=password_entered, key="password_login")
-        
-        # Hapa tunaweka zile picha na title zako ili zisipotee
-        col1, col2, col3 = st.columns([1,2,1])
-        with col2:
-            st.markdown('<div class="kali-container"><img src="data:image/png;base64,{}"></div>'.format(image_to_base64("kali.png")), unsafe_allow_html=True)
-            st.markdown('<p class="jarvis-title" style="font-size:20px; margin-top:10px;">CYBERGATES LABS</p>', unsafe_allow_html=True)
-            
-        # Reset is_logout ili akianza ku-type, mfumo urudi kwenye hali ya kawaida
-        if st.session_state.get('password') == "":
-            st.session_state['is_logout'] = False
-     else:
-        st.markdown("""
+     st.markdown("""
                <p style="
                color:#ff0000;
                font-family:'Orbitron',sans-serif;
@@ -305,13 +285,6 @@ def check_password():
       st.toast("Access Granted Welcome Back, Mr Shrima.")
       st.session_state["welcomed"] = True
 
-    # Hapa tunaweka button ya logout upande wa pembeni (sidebar)
-    # Kwenye ile button ya LOGOUT ndani ya sidebar
-   # Kwenye sehemu ya dashboard baada ya login kufanikiwa
-    if st.sidebar.button("LOGOUT"):
-      st.session_state['password_correct'] = False
-      st.session_state['is_logout'] = True # Tunatambua mtumiaji ametoka kwa hiari
-      st.rerun()
     
     
     
