@@ -423,7 +423,9 @@ if check_password():
        # 1. Jiunge na data ya zamani iliyopo sasa hivi mtandaoni
             
        updated_mauzo = pd.concat([mauzo_global, new_row], ignore_index=True)
+       
        conn.update(worksheet="mauzo", data=updated_mauzo)
+       st.rerun()
     
 
 # 2. Sukuma data yote iliyohuishwa kwenda Google Sheets
