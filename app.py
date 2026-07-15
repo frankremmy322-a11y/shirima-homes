@@ -1214,11 +1214,11 @@ if check_password():
 
 # 2. Kichwa cha Habari (Header) - Times New Roman
         pdf.set_font("Times", "B", 18)
-        pdf.set_text_color(26, 54, 93)
+        pdf.set_text_color(0, 0, 0)
         pdf.cell(200, 10, txt="KWA SHIRIMA STORE - DODOMA", ln=True, align="C")
 
         pdf.set_font("Times", "B", 12)
-        pdf.set_text_color(74, 85, 104)
+        pdf.set_text_color(0,0, 0)
         pdf.cell(200, 8, txt=f"Ripoti ya Biashara: {aina_ya_ripoti}", ln=True, align="C")
         pdf.cell(200, 8, txt=f"Tarehe ya Ripoti: {leo.strftime('%Y-%m-%d')}", ln=True, align="C")
         pdf.ln(10)
@@ -1257,13 +1257,25 @@ if check_password():
         pdf.ln(5)
 
 # 5. Pie Chart
-        plt.figure(figsize=(4, 4))
-        plt.pie(top_bidhaa_df['Qty'], labels=top_bidhaa_df['Category'], autopct='%1.1f%%', startangle=140)
-        img_buf = io.BytesIO()
-        plt.savefig(img_buf, format='png')
-        img_buf.seek(0)
-        pdf.image(img_buf, x=65, w=80)
-        pdf.ln(85)
+        
+
+# 1. Chagua bidhaa 3 za kwanza pekee
+        top3_data = top_bidhaa_df.nlargest(3, 'Qty')
+
+# 2. Kama kuna bidhaa zingine, unaweza kuziweka kama 'Others' (Hiari)
+# Hapa tunatumia hizo 3 tu moja kwa moja
+        labels = top3_data['Category']
+        sizes = top3_data['Asilimia']
+        colors = ['#1f77b4', '#ff7f0e', '#2ca02c'] # Rangi tofauti kwa kila moja
+
+# 3. Chora Pie Chart
+        plt.figure(figsize=(6, 6))
+        plt.pie(sizes, labels=labels, autopct='%1.1f%%', colors=colors, startangle=140)
+        plt.title("Top 3 Bidhaa Zinazouza Zaidi")
+
+# 4. Save chart hii kama picha ili uweke kwenye PDF
+        plt.savefig('top3_pie.png')
+        plt.close()
 
 # 6. Mchanganuo wa Kina (Table)
         # --- MCHANGANUO WA MAUZO (Table) ---
