@@ -1168,7 +1168,9 @@ if check_password():
         bidhaa_zilizouzwa = df_rep['Qty'].sum()
         
         # C. Bidhaa iliyouzika kwa asilimia kubwa (Inasoma column ya 'Category')
-        top_bidhaa_df = df_rep.groupby('Category')['Qty'].sum().reset_index()
+        #top_bidhaa_df = df_rep.groupby('Category')['Qty'].sum().reset_index()
+        # Badilisha mstari huu kwenye kodi yako
+        top_bidhaa_df = df_rep.groupby('Category').agg({'Qty': 'sum', 'Total': 'sum'}).reset_index()
         top_bidhaa_df['Asilimia'] = (top_bidhaa_df['Qty'] / bidhaa_zilizouzwa) * 100
         top_bidhaa_safi = top_bidhaa_df.sort_values(by='Qty', ascending=False).iloc[0]
         
@@ -1253,7 +1255,7 @@ if check_password():
         # --- MCHANGANUO WA MAUZO (Table) ---
         pdf.set_font("Times", "B", 12)
         pdf.set_text_color(0, 0, 0) # Maandishi meusi
-        pdf.cell(200, 10, txt="2. Mchanganuo wa Kina kwa Category", ln=True)
+        pdf.cell(200, 10, txt="Mchanganuo wa Kina kwa Category", ln=True, align="C")
 
 # Headers za Table
         pdf.set_font("Times", "B", 10)
@@ -1266,13 +1268,13 @@ if check_password():
 
 # Data za Table (Loop hii itapanga kila bidhaa kwenye mstari wake)
         pdf.set_font("Times", "", 10)
+        # Ndani ya loop ya PDF table
         for idx, row in top_bidhaa_df.iterrows():
             pdf.cell(50, 8, str(row['Category']), 1)
             pdf.cell(40, 8, f"{int(row['Qty']):,}", 1, 0, 'C')
-    # Hakikisha 'Mauzo' ipo kwenye dataframe yako
-            pdf.cell(50, 8, f"{float(row.get('Mauzo', 0)):,.0f}", 1, 0, 'C')
+    # Hapa tunatumia 'Total' badala ya 'Mauzo'
+            pdf.cell(50, 8, f"{float(row['Total']):,.0f}", 1, 0, 'C') 
             pdf.cell(50, 8, f"{float(row['Asilimia']):.1f}%", 1, 1, 'C')
-
         pdf.ln(5)
 
 # --- FOOTER (Hii ikae hapa baada ya table) ---
