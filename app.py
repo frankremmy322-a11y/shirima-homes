@@ -426,6 +426,8 @@ if check_password():
     
 
 # 2. Sukuma data yote iliyohuishwa kwenda Google Sheets
+    # 2. Sukuma data yote iliyohuishwa kwenda Google Sheets
+    conn.update(worksheet="mauzo", data=updated_mauzo)
        
 
     # 2. Onyesha kwenye Sidebar (Pemben Kabisa)
