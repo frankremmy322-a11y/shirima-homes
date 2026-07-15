@@ -401,7 +401,9 @@ if check_password():
     # Tunachukua bei kulingana na ulichochagua hapo juu
      current_price = bei_kununua_dict.get(new_category, 0)
      
-     stock_qty = df_stoo[df_stoo['Category'] == new_category]['Qty'].values[0] if new_category in df_stoo['Category'].values else 0
+     mauzo_ya_sasa = mauzo_global[mauzo_global['Category'] == new_category]['Qty'].sum
+     jumla_stoo = stoo_global[stoo_global['Category'] == new_category]['Qty'].sum
+     stock_qty = jumla_stoo - mauzo_ya_sasa
      st.markdown(f" **zilizobaki stoo:** {stock_qty}")
     # HAPA NDIPO INAPOONEKANA NDANI YA BOX KABLA YA SUBMIT
      st.markdown(f"💰 **Bei ya Stoo kwa {new_category}:**")
