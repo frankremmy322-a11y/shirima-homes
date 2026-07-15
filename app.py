@@ -1225,18 +1225,25 @@ if check_password():
 
 # 3. Jumla ya Mauzo (Maandishi ya kawaida)
         # --- JUMLA YA MAUZO NA FAIDA (Kushoto) ---
-        pdf.ln(10) # Nafasi kidogo kutoka kwenye Tarehe
-        pdf.set_font("Times", "B", 14)
+        # --- JUMLA YA MAUZO NA FAIDA (Bila Bold na namba chini) ---
+        pdf.ln(5)
+        pdf.set_font("Times", "", 12) # Hakuna "B" hapa ili maandishi yasiwe bold
         pdf.set_text_color(0, 0, 0)
 
 # Jumla ya Mauzo
-        pdf.cell(200, 8, txt=f"Jumla ya Mauzo ya Siku {jumla_mauzo:,.0f} TZS", ln=True)
+        pdf.cell(200, 7, txt="Jumla ya Mauzo ya Siku:", ln=True, align="L")
+        pdf.set_font("Times", "B", 14) # Bold kwa namba tu kama unataka, au ondoa "B" kama unataka iwe ya kawaida
+        pdf.cell(200, 7, txt=f"{jumla_mauzo:,.0f} TZS", ln=True, align="L")
 
-# Faida ya Siku (Inakaa chini yake)
-        pdf.set_font("Times", "B", 14)
-        pdf.cell(200, 8, txt=f"Faida ya Siku {jumla_profit:,.0f} TZS", ln=True)
+        pdf.ln(3) # Nafasi kidogo
 
-        pdf.ln(10) # Nafasi kabla ya kuanza sehemu nyingine
+# Faida ya Siku
+        pdf.set_font("Times", "", 12) # Maandishi ya kawaida
+        pdf.cell(200, 7, txt="Faida ya Siku:", ln=True, align="L")
+        pdf.set_font("Times", "B", 14) # Bold kwa namba
+        pdf.cell(200, 7, txt=f"{jumla_profit:,.0f} TZS", ln=True, align="L")
+
+        pdf.ln(5)
         pdf.ln(10)
 
 # 4. Bidhaa 3 Zinazoongoza
