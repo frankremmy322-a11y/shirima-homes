@@ -1256,14 +1256,11 @@ if check_password():
          pdf.cell(200, 6, txt=f"- {row['Category']}: {row['Asilimia']:.1f}% ya soko", ln=True)
         pdf.ln(5)
 
-# 5. Pie Chart
-        
+     
 
-# 1. Chagua bidhaa 3 za kwanza pekee
         top3_data = top_bidhaa_df.nlargest(3, 'Qty')
 
-# 2. Kama kuna bidhaa zingine, unaweza kuziweka kama 'Others' (Hiari)
-# Hapa tunatumia hizo 3 tu moja kwa moja
+
         labels = top3_data['Category']
         sizes = top3_data['Asilimia']
         colors = ['#1f77b4', '#ff7f0e', '#2ca02c'] # Rangi tofauti kwa kila moja
@@ -1274,8 +1271,13 @@ if check_password():
         plt.title("Top 3 Bidhaa Zinazouza Zaidi")
 
 # 4. Save chart hii kama picha ili uweke kwenye PDF
-        plt.savefig('top3_pie.png')
-        plt.close()
+        # HII NDIO SEHEMU ILIYOKOSEKANA:
+        img_buf = io.BytesIO() # Hakikisha umeshaimport io juu
+        plt.savefig(img_buf, format='png')
+        img_buf.seek(0)
+        pdf.image(img_buf, x=65, w=80) # Hii ndio inaweka picha kwenye PDF
+        plt.close() # Hii inafuta chati kwenye kumbukumbu ili isijirudie
+        
 
 # 6. Mchanganuo wa Kina (Table)
         # --- MCHANGANUO WA MAUZO (Table) ---
