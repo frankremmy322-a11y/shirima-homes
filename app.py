@@ -400,7 +400,9 @@ if check_password():
     with st.sidebar.form("sales_form", clear_on_submit=True):
     # Tunachukua bei kulingana na ulichochagua hapo juu
      current_price = bei_kununua_dict.get(new_category, 0)
-    
+     
+     stock_qty = df_stoo[df_stoo['Category'] == new_category]['Qty'].values[0] if new_category in df_stoo['Category'].values else 0
+     st.markdown(f" **zilizobaki stoo:** {stock_qty}")
     # HAPA NDIPO INAPOONEKANA NDANI YA BOX KABLA YA SUBMIT
      st.markdown(f"💰 **Bei ya Stoo kwa {new_category}:**")
      st.code(f"TSh {current_price:,.0f}") 
@@ -412,20 +414,23 @@ if check_password():
      submitted = st.form_submit_button("Hifadhi Mauzo")
     
     if submitted:
-       profit_made = new_total - (current_price * new_qty)
-       unit_price = int(new_total / new_qty) if new_qty > 0 else 0
+       if new_qty > stock_qty:
+          st.error(f"Huwezi kuuza {new_qty}, zimebaki {stock_qty} tu stoo!")
+       else:
+        profit_made = new_total - (current_price * new_qty)
+        unit_price = int(new_total / new_qty) if new_qty > 0 else 0
         
-       new_row = pd.DataFrame([[
+        new_row = pd.DataFrame([[
             tarehe_mpya.strftime("%Y-%m-%d"), new_category, new_qty, 
             unit_price, new_total, profit_made
-        ]], columns=['Date', 'Category', 'Qty', 'Unit_Price', 'Total', 'Profit'])
+         ]], columns=['Date', 'Category', 'Qty', 'Unit_Price', 'Total', 'Profit'])
         
        # 1. Jiunge na data ya zamani iliyopo sasa hivi mtandaoni
             
-       updated_mauzo = pd.concat([mauzo_global, new_row], ignore_index=True)
+        updated_mauzo = pd.concat([mauzo_global, new_row], ignore_index=True)
        
-       conn.update(worksheet="mauzo", data=updated_mauzo)
-       st.rerun()
+        conn.update(worksheet="mauzo", data=updated_mauzo)
+        st.rerun()
     
 
 # 2. Sukuma data yote iliyohuishwa kwenda Google Sheets
