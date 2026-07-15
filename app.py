@@ -265,7 +265,22 @@ def check_password():
       return False
 
    elif not st.session_state['password_correct']:
-     st.markdown("""
+     # 1. Kama ametoka LOGOUT, onyesha login page safi (pamoja na picha)
+     if st.session_state.get('is_logout', False):
+        st.info("System Locked: Waiting for Authorization From Frank Shirima")
+        st.text_input("ENTER ACCESS CODE", type="password", on_change=password_entered, key="password")
+        
+        # Hapa tunaweka zile picha na title zako ili zisipotee
+        col1, col2, col3 = st.columns([1,2,1])
+        with col2:
+            st.markdown('<div class="kali-container"><img src="data:image/png;base64,{}"></div>'.format(image_to_base64("kali.png")), unsafe_allow_html=True)
+            st.markdown('<p class="jarvis-title" style="font-size:20px; margin-top:10px;">CYBERGATES LABS</p>', unsafe_allow_html=True)
+            
+        # Reset is_logout ili akianza ku-type, mfumo urudi kwenye hali ya kawaida
+        if st.session_state.get('password') == "":
+            st.session_state['is_logout'] = False
+     else:
+        st.markdown("""
                <p style="
                color:#ff0000;
                font-family:'Orbitron',sans-serif;
@@ -292,16 +307,13 @@ def check_password():
 
     # Hapa tunaweka button ya logout upande wa pembeni (sidebar)
     # Kwenye ile button ya LOGOUT ndani ya sidebar
-    if st.sidebar.button("LOGOUT"): 
-    # Futa kabisa hizi keys ili Streamlit ianze upya kama mara ya kwanza
-       if 'password_correct' in st.session_state:
-        del st.session_state['password_correct']
-       if 'welcomed' in st.session_state:
-        del st.session_state['welcomed']
-       if 'password' in st.session_state:
-        del st.session_state['password'] # Hii ndiyo inafuta ile input ya password
+   # Kwenye sehemu ya dashboard baada ya login kufanikiwa
+    if st.sidebar.button("LOGOUT"):
+      st.session_state['password_correct'] = False
+      st.session_state['is_logout'] = True # Tunatambua mtumiaji ametoka kwa hiari
+      st.rerun()
     
-    st.rerun()
+    
     
    return True
 
