@@ -11,7 +11,11 @@ from streamlit_gsheets import GSheetsConnection
 import logging
 
 
-
+# WEKA HII HAPA JUU KABISA
+if 'password_correct' not in st.session_state:
+    st.session_state['password_correct'] = False
+if 'welcomed' not in st.session_state:
+    st.session_state['welcomed'] = False
 
 
 
@@ -285,12 +289,20 @@ def check_password():
       st.balloons()
       st.toast("Access Granted Welcome Back, Mr Shrima.")
       st.session_state["welcomed"] = True
+
+    # Hapa tunaweka button ya logout upande wa pembeni (sidebar)
+    if st.sidebar.button("LOGOUT"):
+        st.session_state["password_correct"] = False
+        st.session_state["welcomed"] = False
+        st.rerun()
     
    return True
 
 
 if check_password():
  
+
+
  
    
   
