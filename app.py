@@ -1259,26 +1259,28 @@ if check_password():
      
 
         top3_data = top_bidhaa_df.nlargest(3, 'Qty')
-
-
+        # 1. Tumia asilimia zile zile ulizotengeneza kwenye dataframe
         labels = top3_data['Category']
-        sizes = top3_data['Asilimia']
-        colors = ['#1f77b4', '#ff7f0e', '#2ca02c'] # Rangi tofauti kwa kila moja
+        sizes = top3_data['Asilimia'] # Hizi ndizo asilimia za soko zima
 
-# 3. Chora Pie Chart
+# 2. Chora Pie Chart na utumie 'pctdistance' kuonyesha asilimia unazozitaka
         plt.figure(figsize=(6, 6))
-        plt.pie(sizes, labels=labels, autopct='%1.1f%%', colors=colors, startangle=140)
-        plt.title("Top 3 Bidhaa Zinazouza Zaidi")
 
-# 4. Save chart hii kama picha ili uweke kwenye PDF
-        # HII NDIO SEHEMU ILIYOKOSEKANA:
-        img_buf = io.BytesIO() # Hakikisha umeshaimport io juu
+# Tunatumia 'autopct' kuonyesha asilimia zenyewe
+# Ili zionekane kama zilivyo kwenye list, tunatumia format ndefu kidogo
+        plt.pie(sizes, labels=labels, autopct=lambda p: f'{p:.1f}%', textprops={'fontsize': 12})
+
+# 3. Kurekebisha Title (Kuongeza size na Bold)
+        plt.title("Top 3 Bidhaa Zinazouza Zaidi", fontsize=16, fontweight='bold')
+
+# Hifadhi na uweke kwenye PDF kama kawaida
+        img_buf = io.BytesIO()
         plt.savefig(img_buf, format='png')
         img_buf.seek(0)
-        pdf.image(img_buf, x=65, w=80) # Hii ndio inaweka picha kwenye PDF
-        plt.close() # Hii inafuta chati kwenye kumbukumbu ili isijirudie
-        
+        pdf.image(img_buf, x=65, w=80)
+        plt.close()
 
+       
 # 6. Mchanganuo wa Kina (Table)
         # --- MCHANGANUO WA MAUZO (Table) ---
         pdf.set_font("Times", "B", 12)
