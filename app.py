@@ -411,6 +411,14 @@ if check_password():
      tarehe_mpya = st.date_input("Tarehe", value=datetime.date.today())
      new_qty = st.number_input("Idadi (Qty)", min_value=1, step=1)
      new_total = st.number_input("Jumla ya Pesa uliyopokea (TZS)", min_value=0, step=5000)
+     # HAPA NDIPO INAPOONEKANA NDANI YA BOX KABLA YA SUBMIT
+     if stock_qty > 0:
+        st.success(f"📦 Zilizobaki stoo: {stock_qty}")
+     else:
+        st.error(f"⚠️ Zilizobaki stoo: {stock_qty}")
+
+     st.markdown(f"💰 **Bei ya Stoo kwa {new_category}:**")
+     st.code(f"TSh {current_price:,.0f}")
     
 
 
