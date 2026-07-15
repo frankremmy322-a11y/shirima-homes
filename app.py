@@ -1250,31 +1250,34 @@ if check_password():
         pdf.ln(85)
 
 # 6. Mchanganuo wa Kina (Table)
+        # --- MCHANGANUO WA MAUZO (Table) ---
         pdf.set_font("Times", "B", 12)
-        pdf.set_text_color(26, 54, 93)
-        pdf.cell(200, 8, txt="2. Mchanganuo wa Kina kwa Category", ln=True)
+        pdf.set_text_color(0, 0, 0) # Maandishi meusi
+        pdf.cell(200, 10, txt="2. Mchanganuo wa Kina kwa Category", ln=True)
 
+# Headers za Table
         pdf.set_font("Times", "B", 10)
-        pdf.set_fill_color(26, 54, 93)
-        pdf.set_text_color(255, 255, 255)
+        pdf.set_fill_color(200, 200, 200) # Kijivu kidogo kwa header
+        pdf.set_text_color(0, 0, 0) # Maandishi meusi
         pdf.cell(50, 8, "Category", 1, 0, 'C', True)
         pdf.cell(40, 8, "Idadi", 1, 0, 'C', True)
         pdf.cell(50, 8, "Thamani (TZS)", 1, 0, 'C', True)
         pdf.cell(50, 8, "% ya Soko", 1, 1, 'C', True)
 
-        pdf.set_text_color(0, 0, 0)
+# Data za Table (Loop hii itapanga kila bidhaa kwenye mstari wake)
         pdf.set_font("Times", "", 10)
         for idx, row in top_bidhaa_df.iterrows():
-          pdf.cell(50, 8, str(row['Category']), 1)
-        pdf.cell(40, 8, f"{row['Qty']:,}", 1, 0, 'C')
-        pdf.cell(50, 8, f"{row.get('Mauzo', 0):,.0f}", 1, 0, 'C')
-        pdf.cell(50, 8, f"{row['Asilimia']:.1f}%", 1, 1, 'C')
+            pdf.cell(50, 8, str(row['Category']), 1)
+            pdf.cell(40, 8, f"{int(row['Qty']):,}", 1, 0, 'C')
+    # Hakikisha 'Mauzo' ipo kwenye dataframe yako
+            pdf.cell(50, 8, f"{float(row.get('Mauzo', 0)):,.0f}", 1, 0, 'C')
+            pdf.cell(50, 8, f"{float(row['Asilimia']):.1f}%", 1, 1, 'C')
 
-# 7. Footer (Chini kabisa ya PDF)
-        pdf.set_y(-15) # Inarukia sentimita 1.5 kutoka chini
+        pdf.ln(5)
+
+# --- FOOTER (Hii ikae hapa baada ya table) ---
         pdf.set_font("Times", "I", 8)
-        pdf.cell(0, 10, txt="This software created by Frank Shirima @all rights reserved", align="C")
-
+        pdf.cell(0, 10, txt="This software created by Frank Shirima @all rights reserved", ln=True, align="C")
 
       
             
