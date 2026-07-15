@@ -402,7 +402,7 @@ if check_password():
      current_price = bei_kununua_dict.get(new_category, 0)
      
      mauzo_ya_sasa = mauzo_global[mauzo_global['Category'] == new_category]['Qty'].sum
-     jumla_stoo = stoo_global[stoo_global['Category'] == new_category]['Qty'].sum
+     jumla_stoo = stoo_global[stoo_global['Category'] == new_category]['Total_Stock'].sum
      stock_qty = jumla_stoo - mauzo_ya_sasa
      st.markdown(f" **zilizobaki stoo:** {stock_qty}")
     # HAPA NDIPO INAPOONEKANA NDANI YA BOX KABLA YA SUBMIT
