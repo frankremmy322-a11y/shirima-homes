@@ -402,9 +402,17 @@ if check_password():
      current_price = bei_kununua_dict.get(new_category, 0)
      
      mauzo_ya_sasa = mauzo_global[mauzo_global['Category'] == new_category]['Qty'].sum()
-     jumla_stoo = stoo_global[stoo_global['Category'] == new_category]['Total_Stock'].sum()
+     jumla_stoo = stoo_global[stoo_global['Category'] == new_category]['Total_Stock'].sum()   
      stock_qty = int(jumla_stoo) - int(mauzo_ya_sasa)
-     st.markdown(f" **zilizobaki stoo:** {stock_qty}")
+     
+     # HAPA NDIPO INAPOONEKANA NDANI YA BOX KABLA YA SUBMIT
+     if stock_qty > 0:
+        st.success(f"📦 Zilizobaki stoo: {stock_qty}")
+     else:
+        st.error(f"⚠️ Zilizobaki stoo: {stock_qty}")
+
+     st.markdown(f"💰 **Bei ya Stoo kwa {new_category}:**")
+     st.code(f"TSh {current_price:,.0f}")
     # HAPA NDIPO INAPOONEKANA NDANI YA BOX KABLA YA SUBMIT
      st.markdown(f"💰 **Bei ya Stoo kwa {new_category}:**")
      st.code(f"TSh {current_price:,.0f}") 
