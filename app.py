@@ -268,7 +268,7 @@ def check_password():
      # 1. Kama ametoka LOGOUT, onyesha login page safi (pamoja na picha)
      if st.session_state.get('is_logout', False):
         st.info("System Locked: Waiting for Authorization From Frank Shirima")
-        st.text_input("ENTER ACCESS CODE", type="password", on_change=password_entered, key="password")
+        st.text_input("ENTER ACCESS CODE", type="password", on_change=password_entered, key="password_login")
         
         # Hapa tunaweka zile picha na title zako ili zisipotee
         col1, col2, col3 = st.columns([1,2,1])
@@ -295,7 +295,7 @@ def check_password():
                </p>
                
                 """,unsafe_allow_html=True)
-     st.text_input("ENTER ACCESS CODE", type="password", on_change=password_entered,key="password")
+     st.text_input("ENTER ACCESS CODE", type="password", on_change=password_entered,key="password_retry")
      st.error("Authetication Failed:Security Breach Protocol Initilized")
      return False
    else:
