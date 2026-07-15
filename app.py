@@ -391,71 +391,47 @@ if check_password():
     else:
         st.session_state.selected_category = "Tupu"
 
-     # CHAGUA BIDHAA HAPA (Hii ita-refresh ukurasa na kubadilisha bei)
-    
-     categories_options = list(bei_kununua_dict.keys()) if bei_kununua_dict else ["Hakuna Bidhaa"]
+# CHAGUA BIDHAA HAPA (Hii ita-refresh ukurasa na kubadilisha bei)
+ 
+   # Code yake ya mwanz ni hii nipe full code yenye mpk iyo if na form iwe na mpangilio mzut wa kuvutia
+#CHAGUA BIDHAA HAPA (Hii ita-refresh ukurasa na kubadilisha bei)
+    categories_options = list(bei_kununua_dict.keys()) if bei_kununua_dict else ["Hakuna Bidhaa"]
 
-     new_category = st.sidebar.selectbox(
+    new_category = st.sidebar.selectbox(
     "Aina ya Bidhaa",
     options=categories_options,
-     )
+    )
 
-# 2. PATA DATA ZA STOO KWA AJILI YA KIKALCULETA
-# Tunatafuta idadi iliyobaki kwenye stoo kwa bidhaa uliyochagua
-     idadi_stoo = stoo_global.loc[stoo_global['Bidhaa'] == new_category, 'Qty'].values[0] if new_category in stoo_global['Bidhaa'].values else 0
-
-# 3. ANZA FORM
+# 3. ANZA FORM (Sasa bei itaonekana humu ndani ikiwa imeshabadilika)
     with st.sidebar.form("sales_form", clear_on_submit=True):
-     st.subheader("📝 Ingiza Mauzo")
+    # Tunachukua bei kulingana na ulichochagua hapo juu
+     current_price = bei_kununua_dict.get(new_category, 0)
     
-    # Onyesha Bei na Stoo kwa mpangilio mzuri
-    current_price = bei_kununua_dict.get(new_category, 0)
+    # HAPA NDIPO INAPOONEKANA NDANI YA BOX KABLA YA SUBMIT
+     st.markdown(f"💰 **Bei ya Stoo kwa {new_category}:**")
+     st.code(f"TSh {current_price:,.0f}") 
     
-    col1, col2 = st.columns(2)
-    with col1:
-        st.markdown("**Bei ya Stoo:**")
-        st.code(f"TSh {current_price:,.0f}")
-    with col2:
-        st.markdown("**Iliyobaki Stoo:**")
-        # Rangi inabadilika kulingana na kama bidhaa imeisha au la
-        if idadi_stoo > 0:
-            st.success(f"{idadi_stoo} Pcs")
-        else:
-            st.error("Imeisha!")
+     tarehe_mpya = st.date_input("Tarehe", value=datetime.date.today())
+     new_qty = st.number_input("Idadi (Qty)", min_value=1, step=1)
+     new_total = st.number_input("Jumla ya Pesa uliyopokea (TZS)", min_value=0, step=5000)
     
-    tarehe_mpya = st.date_input("Tarehe", value=datetime.date.today())
-    new_qty = st.number_input("Idadi unayouza (Qty)", min_value=1, step=1, max_value=int(idadi_stoo))
-    new_total = st.number_input("Jumla ya Pesa uliyopokea (TZS)", min_value=0, step=5000)
+     submitted = st.form_submit_button("Hifadhi Mauzo")
     
-    submitted = st.form_submit_button("Hifadhi Mauzo")
-
-# 4. LOGIC YA KUHIFADHI
-if submitted:
-    if idadi_stoo < new_qty:
-        st.sidebar.error("Samahani! Idadi unayotaka kuuza inazidi ulichonacho stoo.")
-    else:
-        profit_made = new_total - (current_price * new_qty)
-        unit_price = int(new_total / new_qty) if new_qty > 0 else 0
-            
-        new_row = pd.DataFrame([[
-                tarehe_mpya.strftime("%Y-%m-%d"), new_category, new_qty, 
-                unit_price, new_total, profit_made
-            ]], columns=['Date', 'Category', 'Qty', 'Unit_Price', 'Total', 'Profit'])
-            
-        # Hapa ndipo unaunganisha na data ya zamani na ku-update Google Sheets
-        updated_mauzo = pd.concat([mauzo_global, new_row], ignore_index=True)
+    if submitted:
+       profit_made = new_total - (current_price * new_qty)
+       unit_price = int(new_total / new_qty) if new_qty > 0 else 0
         
-        # Hapa unaongeza kodi ya ku-update Google Sheet (e.g., conn.update)
-        st.sidebar.success("Mauzo yamehifadhiwa!")
-        st.rerun() # Refresh app ili kuonyesha data mpya
-
+       new_row = pd.DataFrame([[
+            tarehe_mpya.strftime("%Y-%m-%d"), new_category, new_qty, 
+            unit_price, new_total, profit_made
+        ]], columns=['Date', 'Category', 'Qty', 'Unit_Price', 'Total', 'Profit'])
+        
+       # 1. Jiunge na data ya zamani iliyopo sasa hivi mtandaoni
+            
+       updated_mauzo = pd.concat([mauzo_global, new_row], ignore_index=True)
 
 # 2. Sukuma data yote iliyohuishwa kwenda Google Sheets
-       conn.update(worksheet="mauzo", data=updated_mauzo)
-
-       st.success(f"Imesave Google Sheets! Faida: {profit_made:,.0f}")
-       st.rerun()
-         
+       
 
     # 2. Onyesha kwenye Sidebar (Pemben Kabisa)
     st.sidebar.markdown("---") # Mstari wa kutenganisha
