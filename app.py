@@ -1247,7 +1247,7 @@ if check_password():
         plt.savefig(img_buf, format='png')
         img_buf.seek(0)
         pdf.image(img_buf, x=65, w=80)
-        df.ln(85)
+        pdf.ln(85)
 
 # 6. Mchanganuo wa Kina (Table)
         pdf.set_font("Times", "B", 12)
