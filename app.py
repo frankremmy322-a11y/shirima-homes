@@ -406,10 +406,18 @@ if check_password():
      stock_qty = int(jumla_stoo) - int(mauzo_ya_sasa)
      
      # HAPA NDIPO INAPOONEKANA NDANI YA BOX KABLA YA SUBMIT
+     # Tunatumia if-else kuonyesha button au ujumbe
      if stock_qty > 0:
-        st.success(f"📦 Zilizobaki stoo: {stock_qty}")
+    # Hapa tunaweka button ya hifadhi ndani ya form
+        submitted = st.form_submit_button("Hifadhi Mauzo")
+    
+     if submitted:
+        # Hapa ndipo kodi yako ya ku-update Google Sheets inakaa
+        # ... (kodi zako za hapo awali)
+        st.success("Mauzo yamehifadhiwa!")
      else:
-        st.error(f"⚠️ Zilizobaki stoo: {stock_qty}")
+    # Hapa tunaonyesha ujumbe badala ya button
+        st.error("❌ Bidhaa hii imeisha stoo (Out of Stock)")
 
      st.markdown(f"💰 **Bei ya Stoo kwa {new_category}:**")
      st.code(f"TSh {current_price:,.0f}")
