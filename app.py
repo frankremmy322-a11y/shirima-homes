@@ -383,43 +383,46 @@ if check_password():
     
 
     # --- FORM MPYA YA KUINGIZA MAUZO ---
-    st.sidebar.markdown("---")
-    st.sidebar.subheader("📝 Ingiza Mauzo")
+    
+# 2. Ujanja wa 'Session State' ili ku-update bei live
+    if 'selected_category' not in st.session_state:
+        st.session_state.selected_category = list(bei_kununua_dict.keys())[0]
 
-# 1. Chagua Bidhaa
-    selected_category = st.sidebar.selectbox("Aina ya Bidhaa", list(bei_kununua_dict.keys()))
 
-# 2. Pata bei na stock kwa ajili ya validation
-    current_price = bei_kununua_dict.get(selected_category, 0)
-    stock_qty = stoo_global.loc[stoo_global['Category'] == selected_category, 'Qty'].values[0] if selected_category in stoo_global['Category'].values else 0
+    categories_options = list(bei_kununua_dict.keys()) if bei_kununua_dict else ["Hakuna Bidhaa"]
 
-# 3. Onyesha taarifa za bidhaa
-    st.sidebar.info(f"💰 Bei: {current_price:,} TZS | 📦 Stoo: {stock_qty}")
+    new_category = st.sidebar.selectbox(
+    "Aina ya Bidhaa",
+    options=categories_options,
+    )
 
-# 4. Form ya kuingiza data
-    with st.sidebar.form("sales_form_clean", clear_on_submit=True):
-     tarehe = st.date_input("Tarehe", value=datetime.date.today())
-     qty = st.number_input("Idadi ya kuuza", min_value=1, max_value=int(stock_qty), step=1)
-     jumla = st.number_input("Jumla ya Pesa (TZS)", min_value=0, step=5000)
+# 3. ANZA FORM (Sasa bei itaonekana humu ndani ikiwa imeshabadilika)
+    with st.sidebar.form("sales_form", clear_on_submit=True):
+    # Tunachukua bei kulingana na ulichochagua hapo juu
+     current_price = bei_kununua_dict.get(new_category, 0)
+    
+    # HAPA NDIPO INAPOONEKANA NDANI YA BOX KABLA YA SUBMIT
+     st.markdown(f"💰 **Bei ya Stoo kwa {new_category}:**")
+     st.code(f"TSh {current_price:,.0f}") 
+    
+     tarehe_mpya = st.date_input("Tarehe", value=datetime.date.today())
+     new_qty = st.number_input("Idadi (Qty)", min_value=1, step=1)
+     new_total = st.number_input("Jumla ya Pesa uliyopokea (TZS)", min_value=0, step=5000)
     
      submitted = st.form_submit_button("Hifadhi Mauzo")
-
+    
     if submitted:
-     if stock_qty < qty:
-        st.sidebar.error("Bidhaa haitoshi stoo!")
-     else:
-        # Piga hesabu ya faida na unit price
-        profit = jumla - (current_price * qty)
-        unit_p = jumla / qty
+       profit_made = new_total - (current_price * new_qty)
+       unit_price = int(new_total / new_qty) if new_qty > 0 else 0
         
-        # Jenga row mpya
-        new_row = pd.DataFrame([[
-            tarehe.strftime("%Y-%m-%d"), selected_category, qty, unit_p, jumla, profit
+       new_row = pd.DataFrame([[
+            tarehe_mpya.strftime("%Y-%m-%d"), new_category, new_qty, 
+            unit_price, new_total, profit_made
         ]], columns=['Date', 'Category', 'Qty', 'Unit_Price', 'Total', 'Profit'])
         
-        # Hapa ongeza kodi yako ya ku-update Google Sheets (e.g., conn.update)
-        st.sidebar.success("Imefanikiwa!")
-        st.rerun()
+       # 1. Jiunge na data ya zamani iliyopo sasa hivi mtandaoni
+            
+       updated_mauzo = pd.concat([mauzo_global, new_row], ignore_index=True)
     
 
 # 2. Sukuma data yote iliyohuishwa kwenda Google Sheets
