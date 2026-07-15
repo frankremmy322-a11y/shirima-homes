@@ -411,7 +411,7 @@ if check_password():
      tarehe_mpya = st.date_input("Tarehe", value=datetime.date.today())
      new_qty = st.number_input("Idadi (Qty)", min_value=1, step=1)
      new_total = st.number_input("Jumla ya Pesa uliyopokea (TZS)", min_value=0, step=5000)
-     submitted = st.form_submit_button("Hifadhi Mauzo")
+    
 
 
      # 3. Logic ya button ya hifadhi (Itaonekana tu kama stock ipo)
