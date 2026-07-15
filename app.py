@@ -9,6 +9,7 @@ from datetime import datetime as dt, timedelta
 from prophet import Prophet
 from streamlit_gsheets import GSheetsConnection
 import logging
+import io
 
 
 
@@ -1201,74 +1202,81 @@ if check_password():
         pdf = FPDF()
         pdf.add_page()
         pdf.set_auto_page_break(auto=True, margin=15)
-        
-        # 1. Kichwa cha Habari (Header)
-        pdf.set_font("Helvetica", "B", 18)
-        pdf.set_text_color(26, 54, 93)  # Rangi ya Bluu ya Kiofisi
+
+  
+# 1. Maandalizi ya Data (Panga kuanzia nyingi kwenda ndogo)
+        top_bidhaa_df = top_bidhaa_df.sort_values(by='Qty', ascending=False)
+
+        pdf = FPDF()
+        pdf.add_page()
+
+# 2. Kichwa cha Habari (Header) - Times New Roman
+        pdf.set_font("Times", "B", 18)
+        pdf.set_text_color(26, 54, 93)
         pdf.cell(200, 10, txt="KWA SHIRIMA STORE - DODOMA", ln=True, align="C")
-        
-        pdf.set_font("Helvetica", "B", 12)
-        pdf.set_text_color(74, 85, 104) # Kijivu
+
+        pdf.set_font("Times", "B", 12)
+        pdf.set_text_color(74, 85, 104)
         pdf.cell(200, 8, txt=f"Ripoti ya Biashara: {aina_ya_ripoti}", ln=True, align="C")
-        pdf.cell(200, 8, txt=f"Tarehe ya Ripoti: {leo.strftime("%Y-%m-%d")}", ln=True, align="C")
-        pdf.ln(10) # Nafasi ya chini (Spacer)
-        
-        # 2. SEHEMU YA 1: MUHTASARI WA MAPATO (Table ya Kwanza)
-        pdf.set_font("Helvetica", "B", 14)
-        pdf.set_text_color(26, 54, 93)
-        pdf.cell(200, 10, txt="1. Muhtasari wa Makusanyo ya Kifedha", ln=True)
-        pdf.ln(2)
-        
-        # Muundo wa Meza ya Muhtasari
-        pdf.set_font("Helvetica", "B", 11)
-        pdf.set_fill_color(26, 54, 93)   # Background ya Header (Bluu)
-        pdf.set_text_color(255, 255, 255) # Maandishi ya Header (Nyeupe)
-        
-        pdf.cell(90, 8, txt="Kipengele", border=1, ln=False, fill=True)
-        pdf.cell(100, 8, txt="Thamani / Kiasi", border=1, ln=True, fill=True)
-        
-        # Data za muhtasari
-        pdf.set_text_color(0, 0, 0) # Rudisha maandishi ya kawaida (Meusi)
-        pdf.set_font("Helvetica", "", 11)
-        
-        data_muhtasari = [
-            ("Jumla ya Mauzo", f"{jumla_mauzo:,.0f} TZS"),
-            ("Faida Halisi (Profit)", f"{jumla_profit:,.0f} TZS"),
-            ("Idadi ya Bidhaa Zilizouzwa", f"{bidhaa_zilizouzwa:,} Pcs"),
-            ("Bidhaa Inayoongoza", f"{top_jina} ({top_asilimia:.1f}%)"),
-            ("Jumla ya Vitu Vilivyobaki Stoo", f"{vitu_vya_stoo:,} Pcs")
-        ]
-        
-        for kipengele, thamani in data_muhtasari:
-            pdf.set_font("Helvetica", "B", 11) if "Jumla" in kipengele or "Faida" in kipengele else pdf.set_font("Helvetica", "", 11)
-            pdf.cell(90, 8, txt=kipengele, border=1, ln=False)
-            pdf.cell(100, 8, txt=thamani, border=1, ln=True)
-            
-        pdf.ln(12) # Nafasi kwenda sehemu inayofuata
-        
-        # 3. SEHEMU YA 2: MCHANGANUO WA BIDHAA (Table ya Pili)
-        pdf.set_font("Helvetica", "B", 14)
-        pdf.set_text_color(26, 54, 93)
-        pdf.cell(200, 10, txt="2. Mchanganuo wa Mauzo kwa Makundi ya Bidhaa (Category)", ln=True)
-        pdf.ln(2)
-        
-        # Header ya Table ya pili
-        pdf.set_font("Helvetica", "B", 11)
-        pdf.set_fill_color(74, 85, 104)   # Background ya Kijivu
-        pdf.set_text_color(255, 255, 255) # Maandishi Nyeupe
-        
-        pdf.cell(80, 8, txt="Category / Kundi", border=1, ln=False, fill=True)
-        pdf.cell(55, 8, txt="Idadi Zilizouzwa", border=1, ln=False, fill=True, align="C")
-        pdf.cell(55, 8, txt="Asilimia ya Soko", border=1, ln=True, fill=True, align="C")
-        
-        # Data za Table ya Pili kutoka kwenye loop yetu ya groupby
+        pdf.cell(200, 8, txt=f"Tarehe ya Ripoti: {leo.strftime('%Y-%m-%d')}", ln=True, align="C")
+        pdf.ln(10)
+
+# 3. Jumla ya Mauzo (Maandishi ya kawaida)
+        pdf.set_font("Times", "B", 14)
         pdf.set_text_color(0, 0, 0)
-        pdf.set_font("Helvetica", "", 11)
-        
+        pdf.cell(200, 8, txt="Jumla ya Mauzo ya Siku", ln=True, align="C")
+        pdf.set_font("Times", "B", 20)
+        pdf.set_text_color(26, 54, 93)
+        pdf.cell(200, 10, txt=f"{jumla_mauzo:,.0f} TZS", ln=True, align="C")
+        pdf.ln(10)
+
+# 4. Bidhaa 3 Zinazoongoza
+        pdf.set_font("Times", "B", 12)
+        pdf.set_text_color(26, 54, 93)
+        pdf.cell(200, 8, txt="Top 3: Bidhaa Zinazouza Zaidi", ln=True)
+        pdf.set_font("Times", "", 11)
+        pdf.set_text_color(0, 0, 0)
+        for i, row in top_bidhaa_df.head(3).iterrows():
+         pdf.cell(200, 6, txt=f"- {row['Category']}: {row['Asilimia']:.1f}% ya soko", ln=True)
+        pdf.ln(5)
+
+# 5. Pie Chart
+        plt.figure(figsize=(4, 4))
+        plt.pie(top_bidhaa_df['Qty'], labels=top_bidhaa_df['Category'], autopct='%1.1f%%', startangle=140)
+        img_buf = io.BytesIO()
+        plt.savefig(img_buf, format='png')
+        img_buf.seek(0)
+        pdf.image(img_buf, x=65, w=80)
+        df.ln(85)
+
+# 6. Mchanganuo wa Kina (Table)
+        pdf.set_font("Times", "B", 12)
+        pdf.set_text_color(26, 54, 93)
+        pdf.cell(200, 8, txt="2. Mchanganuo wa Kina kwa Category", ln=True)
+
+        pdf.set_font("Times", "B", 10)
+        pdf.set_fill_color(26, 54, 93)
+        pdf.set_text_color(255, 255, 255)
+        pdf.cell(50, 8, "Category", 1, 0, 'C', True)
+        pdf.cell(40, 8, "Idadi", 1, 0, 'C', True)
+        pdf.cell(50, 8, "Thamani (TZS)", 1, 0, 'C', True)
+        pdf.cell(50, 8, "% ya Soko", 1, 1, 'C', True)
+
+        pdf.set_text_color(0, 0, 0)
+        pdf.set_font("Times", "", 10)
         for idx, row in top_bidhaa_df.iterrows():
-            pdf.cell(80, 8, txt=str(row['Category']), border=1, ln=False)
-            pdf.cell(55, 8, txt=f"{row['Qty']:,} Pcs", border=1, ln=False, align="C")
-            pdf.cell(55, 8, txt=f"{row['Asilimia']:.1f}%", border=1, ln=True, align="C")
+          pdf.cell(50, 8, str(row['Category']), 1)
+        pdf.cell(40, 8, f"{row['Qty']:,}", 1, 0, 'C')
+        pdf.cell(50, 8, f"{row.get('Mauzo', 0):,.0f}", 1, 0, 'C')
+        pdf.cell(50, 8, f"{row['Asilimia']:.1f}%", 1, 1, 'C')
+
+# 7. Footer (Chini kabisa ya PDF)
+        pdf.set_y(-15) # Inarukia sentimita 1.5 kutoka chini
+        pdf.set_font("Times", "I", 8)
+        pdf.cell(0, 10, txt="This software created by Frank Shirima @all rights reserved", align="C")
+
+
+      
             
          # 4. Kutoa PDF kama byte string kwa ajili ya Streamlit Download Button
         pdf_output = pdf.output(dest='S')
