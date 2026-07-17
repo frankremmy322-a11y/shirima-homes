@@ -106,9 +106,9 @@ def image_to_base64(image_path):
       
 
 def password_entered():
-   if st.session_state["password"]=="shirima2026":
+   if st.session_state.get("password")=="shirima2026":
     st.session_state["password_correct"]=True
-    del st.session_state["password"]
+    #del st.session_state["password"]
    else:
     st.session_state["password_correct"]=False
 
