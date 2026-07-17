@@ -276,7 +276,7 @@ def check_password():
                </p>
                
                 """,unsafe_allow_html=True)
-     st.text_input("ENTER ACCESS CODE", type="password", on_change=password_entered,key="password_retry")
+     st.text_input("ENTER ACCESS CODE", type="password", on_change=password_entered,key="password")
      st.error("Authetication Failed:Security Breach Protocol Initilized")
      return False
    else:
