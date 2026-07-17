@@ -1066,11 +1066,11 @@ if check_password():
                 
            
           #futa oda kabisa
-               if st.button("Futa Oda Hii"):
-                  df_orders=df_orders[df_orders['Mteja']!=target_customer]
-                  conn.update(worksheet="orders", data=df_orders)
-                  st.warning(f"Oda ya {target_customer}imefutwa!")
-                  st.rerun()
+                if st.button("Futa Oda Hii"):
+                   df_orders=df_orders[df_orders['Mteja']!=target_customer]
+                   conn.update(worksheet="orders", data=df_orders)
+                   st.warning(f"Oda ya {target_customer}imefutwa!")
+                   st.rerun()
 
        with col_c:
           st.write("**Maelekezo ya Order:**")
