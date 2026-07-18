@@ -1155,26 +1155,37 @@ if check_password():
                 
                 fig = go.Figure()
 
-                # 1. Weka kivuli cha usalama (Upper and Lower bounds)
+                # 1. Mstari wa Juu kabisa - Kijani (Upeo wa Juu wa Faida)
                 fig.add_trace(go.Scatter(
-                    x=pd.concat([matokeo['ds'], matokeo['ds'][::-1]]),
-                    y=pd.concat([matokeo['yhat_upper'], matokeo['yhat_lower'][::-1]]),
-                    fill='toself',
-                    fillcolor='rgba(0, 176, 246, 0.15)', # Rangi ya bluu ya uwazi
-                    line=dict(color='rgba(255,255,255,0)'),
-                    hoverinfo="skip",
-                    showlegend=True,
-                    name='Mipaka ya Utabiri (Usalama)'
+                    x=matokeo['ds'],
+                    y=matokeo['yhat_upper'],
+                    mode='lines',
+                    line=dict(color='#00CC96', width=2, dash='dash'), # Kijani cha dashi
+                    name='Upeo wa Juu (Faida Kubwa)'
                 ))
 
-                # 2. Weka mstari mkuu wa utabiri wa AI (Trend Line)
+                # 2. Mstari Mkuu wa Katikati - Bluu (Utabiri Mkuu wa AI)
                 fig.add_trace(go.Scatter(
                     x=matokeo['ds'],
                     y=matokeo['yhat'],
                     mode='lines',
-                    line=dict(color='#00B0F6', width=3), # Mstari wa bluu uliokolea
-                    name='Utabiri wa Faida'
+                    line=dict(color='#00B0F6', width=3.5), # Bluu nzito ya mwangaza
+                    name='Utabiri Mkuu'
                 ))
+
+                # 3. Mstari wa Chini kabisa - Nyekundu (Kiwango cha Chini/Hasara)
+                fig.add_trace(go.Scatter(
+                    x=matokeo['ds'],
+                    y=matokeo['yhat_lower'],
+                    mode='lines',
+                    line=dict(color='#EF553B', width=2, dash='dash'), # Nyekundu ya dashi
+                    name='Upeo wa Chini (Hatari)'
+                ))
+                # 1. Weka kivuli cha usalama (Upper and Lower bounds)
+                
+                
+                # 2. Weka mstari mkuu wa utabiri wa AI (Trend Line)
+                
 
                 # 3. Muonekano wa Kijasusi (Dark Theme Layout)
                 fig.update_layout(
