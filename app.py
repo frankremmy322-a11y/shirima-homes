@@ -765,7 +765,7 @@ if check_password():
               ))
 
         # 3. Muonekano wa Jumla wa Mandhari ya Giza (Layout) 🌌
-            fig_hist.update_layout(
+             fig_hist.update_layout(
                xaxis_title='Tarehe',
                yaxis_title='Jumla ya Pesa (TZS)',
                template='plotly_dark',               # Mandhari ya giza
@@ -777,7 +777,7 @@ if check_password():
             )
 
         # 4. Onyesha Grafu kwenye Streamlit
-            st.plotly_chart(fig_hist, use_container_width=True)
+             st.plotly_chart(fig_hist, use_container_width=True)
 
 
 
