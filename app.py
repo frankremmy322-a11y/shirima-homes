@@ -782,12 +782,12 @@ if check_password():
 
 
 
- with col2:
+  with col2:
         # Hakikisha unatumia jina sahihi la faili lako la CSV
-         df_mauzo_csv = mauzo_global.copy()
+     df_mauzo_csv = mauzo_global.copy()
 
 # Muhimu: Badilisha column ya Date iwe tarehe halisi ili Prophet isilete error
-         df_mauzo_csv['Date'] = pd.to_datetime(df_mauzo_csv['Date']).dt.date
+     df_mauzo_csv['Date'] = pd.to_datetime(df_mauzo_csv['Date']).dt.date
    
         st.markdown(f"#### 🔮 Utabiri wa Mauzo")
     
