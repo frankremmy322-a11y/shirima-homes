@@ -50,17 +50,57 @@ df_orders = orders_global.copy()
 
 def piga_utabiri_wa_faida(df, siku_za_mbele):
     try:
+        # 1. Hakikisha df si tupu na ina columns zinazohitajika
+        if df is None or df.empty or 'Date' not in df.columns or 'Profit' not in df.columns:
+            st.info("ℹ️ Hakuna data ya faida inayopatikana kwa ajili ya utabiri.")
+            return None
+
+        # 2. Prophet inataka column ziitwe 'ds' na 'y'
         df_p = df[['Date', 'Profit']].copy()
         df_p.columns = ['ds', 'y']
-        df_p['ds'] = pd.to_datetime(df_p['ds'])
+
+        # 3. Hakikisha tarehe zipo kwenye format sahihi na faida ni namba
+        df_p['ds'] = pd.to_datetime(df_p['ds'], errors='coerce')
+        df_p['y'] = pd.to_numeric(df_p['y'], errors='coerce')
+
+        # 4. Safiisha mistari yote yenye NaN (data iliyokosekana au yenye makosa)
+        df_p_clean = df_p.dropna(subset=['ds', 'y'])
+
+        # 5. Prophet inahitaji angalau mistari 2 halali kufanya kazi
+        if len(df_p_clean) < 2:
+            st.info("ℹ️ Data ya faida haitoshi kufanya utabiri kwa sasa. Inahitaji angalau rekodi 2.")
+            return None
+
+        # 6. Anzisha model na kuwasha msimu wa wiki na mwaka
         from prophet import Prophet
-        m = Prophet(daily_seasonality=True).fit(df_p)
+        m = Prophet(
+            changepoint_prior_scale=0.05, 
+            daily_seasonality=False,   # Hatuhitaji mabadiliko ya saa kwa saa
+            weekly_seasonality=True,   # Inakamata tabia za siku za wiki (mf. wikendi)
+            yearly_seasonality=True    # Inakamata mbadiliko ya miezi ya mwaka
+        )
+        
+        # 7. ONGEZA SIKUKUU ZA TANZANIA (Holidays) 🇹🇿
+        # Prophet itajua kiotomatiki siku kama Krismasi, Eid, Saba Saba, n.k.
+        try:
+            m.add_country_holidays(country_name='TZ')
+        except Exception as holiday_error:
+            # Kama kuna shida ya maktaba ya holidays, code itaendelea bila kufeli
+            st.warning(f"⚠️ Imeshindwa kupakia sikukuu za TZ, utabiri utaendelea kawaida: {holiday_error}")
+        
+        # 8. Funza model kwa kutumia data iliyosafishwa
+        m.fit(df_p_clean)
+
+        # 9. Tengeneza tarehe za mbeleni na piga utabiri
         future = m.make_future_dataframe(periods=siku_za_mbele)
         forecast = m.predict(future)
-        return forecast # Function inaishia hapa pekee!
-    except Exception as e:
-        return None
 
+        return forecast
+
+    except Exception as e:
+        # Ulinzi kama kuna hitilafu nyingine yoyote isiyotegemewa
+        st.error(f"Error kwenye Prophet ya Faida: {e}")
+        return None
 
 def piga_utabiri_wa_mauzo(df, siku_za_mbele):
     try:
