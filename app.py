@@ -807,7 +807,7 @@ if check_password():
              x=future_only['ds'],
              y=future_only['yhat_upper'],
              mode='lines',
-             line=dict(color='#00E676', width=2), # Imeondolewa dash='dash'
+             line=dict(color='#00E676', width=2, dash='dash'), # Imeondolewa dash='dash'
              name='Upeo wa Juu'
          ))
 
@@ -825,13 +825,13 @@ if check_password():
              x=future_only['ds'],
              y=future_only['yhat_lower'],
              mode='lines',
-             line=dict(color='#FF1744', width=2), # Imeondolewa dash='dash'
+             line=dict(color='#FF1744', width=2, dash='dash'), # Imeondolewa dash='dash'
              name='Upeo wa Chini'
         ))
 
         # Muonekano wa Giza (Dark Layout)
            fig_fore.update_layout(
-             title='Utabiri wa Mauzo ya Mbeleni (Forex Style)',
+             title='Utabiri wa Mauzo ya Mbeleni',
              xaxis_title='Tarehe',
              yaxis_title='Mauzo (TZS)',
              template='plotly_dark',
