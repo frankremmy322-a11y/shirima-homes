@@ -739,23 +739,55 @@ if check_password():
     # 4. Onyesha Matokeo kwenye Dashboard
     col1, col2 = st.columns(2)
 
-    with col1:
-           st.subheader("Mwenendo wa Mauzo ya Nyuma")
-           df_graph = mauzo_global.copy()
-           df_graph['Date']=pd.to_datetime(df_graph['Date']).dt.date
+        with col1:
+             st.subheader("Mwenendo wa Mauzo ya Nyuma")
+        
+        # 1. Maandalizi ya Data (Zile code zako za zamani)
+             df_graph = mauzo_global.copy()
+             df_graph['Date'] = pd.to_datetime(df_graph['Date']).dt.date
+             daily_sales = df_graph.groupby('Date')['Total'].sum().reset_index().sort_values('Date')
 
-           daily_sales=df_graph.groupby('Date')['Total'].sum().reset_index().sort_values('Date')
-      
-           st.line_chart(data=daily_sales,x='Date',y='Total',use_container_width=True)
+        # 2. Kutengeneza Chati ya Kisasu ya Plotly (Forex Style) 🟩
+
+    
+
+             fig_hist = go.Figure()
+
+        # Ongeza mstari mkuu na kivuli cha chini yake (Area Chart)
+            fig_hist.add_trace(go.Scatter(
+               x=daily_sales['Date'],
+               y=daily_sales['Total'],
+               mode='lines',                         # Mstari thabiti juu
+               line=dict(color='#00E676', width=3),   # Rangi ya kijani kibichi cha Forex
+               fill='tozeroy',                       # Jaza rangi kuelekea chini (Y=0)
+               fillcolor='rgba(0, 230, 118, 0.15)',  # Kijani cha uwazi sana kinachofifia
+               name='Jumla ya Mauzo'
+             ))
+
+        # 3. Muonekano wa Jumla wa Mandhari ya Giza (Layout) 🌌
+           fig_hist.update_layout(
+               xaxis_title='Tarehe',
+               yaxis_title='Jumla ya Pesa (TZS)',
+               template='plotly_dark',               # Mandhari ya giza
+               hovermode='x unified',                # Maelezo yajazane vizuri ukiweka mouse
+               paper_bgcolor='rgba(0,0,0,0)',        # Background iendane na app yako
+               plot_bgcolor='rgba(0,0,0,0)',
+               xaxis=dict(showgrid=False),           # Ondoa gridi za X kwa muonekano nadhifu
+               yaxis=dict(showgrid=True, gridcolor='rgba(255,255,255,0.05)') # Gridi za Y ziwe hafifu sana
+           )
+
+        # 4. Onyesha Grafu kwenye Streamlit
+          st.plotly_chart(fig_hist, use_container_width=True)
 
 
 
-    with col2:
+
+      with col2:
         # Hakikisha unatumia jina sahihi la faili lako la CSV
-        df_mauzo_csv = mauzo_global.copy()
+         df_mauzo_csv = mauzo_global.copy()
 
 # Muhimu: Badilisha column ya Date iwe tarehe halisi ili Prophet isilete error
-        df_mauzo_csv['Date'] = pd.to_datetime(df_mauzo_csv['Date']).dt.date
+         df_mauzo_csv['Date'] = pd.to_datetime(df_mauzo_csv['Date']).dt.date
    
         st.markdown(f"#### 🔮 Utabiri wa Mauzo")
     
