@@ -741,7 +741,7 @@ if check_password():
 
      
     with col1:
-           st.subheader("Mwenendo wa Mauzo ya Nyuma")
+           st.subheader("✏️ Mwenendo wa Mauzo ya Nyuma")
         
         # 1. Maandalizi ya Data (Zile code zako za zamani)
            df_graph = mauzo_global.copy()
@@ -1019,7 +1019,7 @@ if check_password():
 
 
     st.divider()
-    st.subheader("Orders Table")
+    st.subheader("📖 Orders Table")
 
 
     bidhaa_zilizopo=list(df_stoo['Category'].unique())
