@@ -739,7 +739,7 @@ if check_password():
     # 4. Onyesha Matokeo kwenye Dashboard
     col1, col2 = st.columns(2)
 
-          with col1:
+    with col1:
              st.subheader("Mwenendo wa Mauzo ya Nyuma")
         
         # 1. Maandalizi ya Data (Zile code zako za zamani)
@@ -782,7 +782,7 @@ if check_password():
 
 
 
-       with col2:
+ with col2:
         # Hakikisha unatumia jina sahihi la faili lako la CSV
          df_mauzo_csv = mauzo_global.copy()
 
