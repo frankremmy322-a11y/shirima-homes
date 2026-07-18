@@ -754,7 +754,7 @@ if check_password():
              fig_hist = go.Figure()
 
         # Ongeza mstari mkuu na kivuli cha chini yake (Area Chart)
-            fig_hist.add_trace(go.Scatter(
+             fig_hist.add_trace(go.Scatter(
                x=daily_sales['Date'],
                y=daily_sales['Total'],
                mode='lines',                         # Mstari thabiti juu
@@ -762,10 +762,10 @@ if check_password():
                fill='tozeroy',                       # Jaza rangi kuelekea chini (Y=0)
                fillcolor='rgba(0, 230, 118, 0.15)',  # Kijani cha uwazi sana kinachofifia
                name='Jumla ya Mauzo'
-             ))
+              ))
 
         # 3. Muonekano wa Jumla wa Mandhari ya Giza (Layout) 🌌
-           fig_hist.update_layout(
+            fig_hist.update_layout(
                xaxis_title='Tarehe',
                yaxis_title='Jumla ya Pesa (TZS)',
                template='plotly_dark',               # Mandhari ya giza
@@ -774,10 +774,10 @@ if check_password():
                plot_bgcolor='rgba(0,0,0,0)',
                xaxis=dict(showgrid=False),           # Ondoa gridi za X kwa muonekano nadhifu
                yaxis=dict(showgrid=True, gridcolor='rgba(255,255,255,0.05)') # Gridi za Y ziwe hafifu sana
-           )
+            )
 
         # 4. Onyesha Grafu kwenye Streamlit
-          st.plotly_chart(fig_hist, use_container_width=True)
+            st.plotly_chart(fig_hist, use_container_width=True)
 
 
 
