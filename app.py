@@ -796,16 +796,60 @@ if check_password():
         forecast = piga_utabiri_wa_mauzo(df_mauzo_csv, siku_za_mbele)
     
         if forecast is not None:
-        # 1. Chora Grafu kwanza (Inakaa juu)
-         future_only = forecast.tail(siku_za_mbele)
-         st.line_chart(future_only.set_index('ds')['yhat'])
+        # # 1. Chora Grafu ya Kijanja ya Plotly (Mistari Thabiti ya Forex) 🔮
+       
+           future_only = forecast.tail(siku_za_mbele)
         
-        # 2. Weka namba ya matokeo kwa chini (Hitimisho)
-         mauzo_yatarajiwa = forecast['yhat'].iloc[-1]
-         st.metric(
-            label=f"Mauzo ya Siku ya {siku_za_mbele}", 
+           fig_fore = go.Figure()
+
+        # Mstari wa Juu kabisa - Kijani Thabiti 🟢
+           fig_fore.add_trace(go.Scatter(
+             x=future_only['ds'],
+             y=future_only['yhat_upper'],
+             mode='lines',
+             line=dict(color='#00E676', width=2), # Imeondolewa dash='dash'
+             name='Upeo wa Juu'
+         ))
+
+        # Mstari Mkuu wa Katikati - Bluu Thabiti 🔵
+           fig_fore.add_trace(go.Scatter(
+             x=future_only['ds'],
+             y=future_only['yhat'],
+             mode='lines',
+             line=dict(color='#00B0F6', width=3.5),
+             name='Utabiri wa Mauzo'
+           ))
+
+        # Mstari wa Chini kabisa - Nyekundu Thabiti 🔴
+           fig_fore.add_trace(go.Scatter(
+             x=future_only['ds'],
+             y=future_only['yhat_lower'],
+             mode='lines',
+             line=dict(color='#FF1744', width=2), # Imeondolewa dash='dash'
+             name='Upeo wa Chini'
+        ))
+
+        # Muonekano wa Giza (Dark Layout)
+           fig_fore.update_layout(
+             title='Utabiri wa Mauzo ya Mbeleni (Forex Style)',
+             xaxis_title='Tarehe',
+             yaxis_title='Mauzo (TZS)',
+             template='plotly_dark',
+             hovermode='x unified',
+             paper_bgcolor='rgba(0,0,0,0)',
+             plot_bgcolor='rgba(0,0,0,0)',
+             legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1)
+         )
+
+        # Onyesha chati mpya ya Plotly
+           st.plotly_chart(fig_fore, use_container_width=True)
+
+        # 2. Weka namba ya matokeo kwa chini
+           mauzo_yatarajiwa = future_only['yhat'].iloc[-1]
+           st.metric(
+            label=f"Mauzo ya Siku ya {siku_za_mbele}",
             value=f"{mauzo_yatarajiwa:,.0f} TZS"
-        )
+         )
          
     st.divider()
     st.write("### 📜 Historia ya Mauzo: Kwa Shirima Store")
