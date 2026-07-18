@@ -10,6 +10,7 @@ from prophet import Prophet
 from streamlit_gsheets import GSheetsConnection
 import logging
 import io
+import plotly.graph_objects as go
 
 
 
@@ -1135,30 +1136,68 @@ if check_password():
     else:
        st.info("Hakuna oda za kufanyiwa marekebisho kwa sasa")
 
-  
     st.divider()
     st.subheader("🔮 Frank AI: Profit Analysis")
 
     col_top1, col_top2 = st.columns([2, 1])
     with col_top2:
-     siku_adjust = st.slider("Adjust Siku:", 7, 90, 30, key="fs_slider")
+        siku_adjust = st.slider("Adjust Siku:", 7, 90, 30, key="fs_slider")
 
-# Hapa ndipo sasa tunaita function na kuonyesha grafu
+    # Hapa ndipo sasa tunaita function na kuonyesha grafu
     with st.spinner("Frank AI is analysing profit..."):
-     matokeo = piga_utabiri_wa_faida(df_mauzo_csv, siku_adjust)
+        matokeo = piga_utabiri_wa_faida(df_mauzo_csv, siku_adjust)
     
-     if matokeo is not None:
-        c1, c2 = st.columns([2, 1])
-        with c1:
-            # Hii sasa itatokea nje ya function na itaonekana!
-            st.line_chart(matokeo.set_index('ds')['yhat'])
-        with c2:
-            faida_ijayo = matokeo['yhat'].iloc[-1]
-            st.metric(label=f"Faida ya Siku {siku_adjust}", value=f"{faida_ijayo:,.0f} TZS")
-     else:
-         st.error("AI imeshindwa kusoma data. Hakikisha CSV ina 'Date' na 'Profit'.")
-    
+        if matokeo is not None:
+            c1, c2 = st.columns([2, 1])
+            with c1:
+                # --- TOLEO JIPYA: GRAFU YA KIJANJA YA PLOTLY ---
+                import plotly.graph_objects as go
+                
+                fig = go.Figure()
 
+                # 1. Weka kivuli cha usalama (Upper and Lower bounds)
+                fig.add_trace(go.Scatter(
+                    x=pd.concat([matokeo['ds'], matokeo['ds'][::-1]]),
+                    y=pd.concat([matokeo['yhat_upper'], matokeo['yhat_lower'][::-1]]),
+                    fill='toself',
+                    fillcolor='rgba(0, 176, 246, 0.15)', # Rangi ya bluu ya uwazi
+                    line=dict(color='rgba(255,255,255,0)'),
+                    hoverinfo="skip",
+                    showlegend=True,
+                    name='Mipaka ya Utabiri (Usalama)'
+                ))
+
+                # 2. Weka mstari mkuu wa utabiri wa AI (Trend Line)
+                fig.add_trace(go.Scatter(
+                    x=matokeo['ds'],
+                    y=matokeo['yhat'],
+                    mode='lines',
+                    line=dict(color='#00B0F6', width=3), # Mstari wa bluu uliokolea
+                    name='Utabiri wa Faida'
+                ))
+
+                # 3. Muonekano wa Kijasusi (Dark Theme Layout)
+                fig.update_layout(
+                    title='Mwelekeo wa Faida na Maeneo ya Kiusalama',
+                    xaxis_title='Tarehe',
+                    yaxis_title='Faida (TZS)',
+                    template='plotly_dark', # Inafanya grafu iwe na giza
+                    hovermode='x unified',  # Inapakia data zote ukisogeza mouse juu ya tarehe
+                    paper_bgcolor='rgba(0,0,0,0)', # Inafanya background iendane na app
+                    plot_bgcolor='rgba(0,0,0,0)',
+                    legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1)
+                )
+
+                # Onyesha grafu ya Plotly kwenye Streamlit
+                st.plotly_chart(fig, use_container_width=True)
+                # --- MWISHO WA GRAFU YA PLOTLY ---
+
+            with c2:
+                faida_ijayo = matokeo['yhat'].iloc[-1]
+                st.metric(label=f"Faida ya Siku {siku_adjust}", value=f"{faida_ijayo:,.0f} TZS")
+        else:
+            st.error("AI imeshindwa kusoma data. Hakikisha CSV ina 'Date' na 'Profit'.")
+            
 # 3. Onyesha data za sasa kwa ufupi (Comparison)
     st.write("---")
     total_profit_now = df_mauzo_csv['Profit'].sum()
