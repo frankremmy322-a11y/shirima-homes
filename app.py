@@ -1215,13 +1215,13 @@ if check_password():
 # 1. Soma Data kutoka kwenye worksheet ya "gharama"
     df_exp = conn.read(worksheet="gharama")
 
-    st.title("💸 Usimamizi wa Gharama")
+    st.subheader("💸 Usimamizi wa Gharama")
 
 # -------------------------------------------------------------
 # SEHEMU YA 1: FOMU YA KUINGIZA GHARAMA MPYA
 # -------------------------------------------------------------
     with st.form("form_ingiza_gharama", clear_on_submit=True):
-       st.subheader("Ingiza Gharama Mpya")
+       st.markdown("Ingiza Gharama Mpya")
     
        col_a, col_b = st.columns(2)
        with col_a:
