@@ -488,14 +488,14 @@ if check_password():
 
      
 # 1. Soma Data kutoka kwenye worksheet ya "gharama"
-     df_exp = conn.read(worksheet="gharama")
+    df_exp = conn.read(worksheet="gharama")
 
-     st.title("💸 Usimamizi wa Gharama")
+    st.title("💸 Usimamizi wa Gharama")
 
 # -------------------------------------------------------------
 # SEHEMU YA 1: FOMU YA KUINGIZA GHARAMA MPYA (MANUALLY)
 # -------------------------------------------------------------
-     with st.form("form_ingiza_gharama", clear_on_submit=True):
+    with st.form("form_ingiza_gharama", clear_on_submit=True):
          st.subheader("Ingiza Gharama Mpya")
     
          col_a, col_b = st.columns(2)
@@ -512,7 +512,7 @@ if check_password():
          submit_btn = st.form_submit_button("Hifadhi Gharama")
 
     
-     if submit_btn:
+    if submit_btn:
         if cost_price_input > 0:
         # Tengeneza record mpya kulingana na vichwa vyako vya Google Sheet
            new_row = pd.DataFrame([{
@@ -530,11 +530,10 @@ if check_password():
            st.rerun()
         else:
          st.error("Tafadhali ingiza Cost Price iliyo kubwa kuliko 0.")
-
-     st.divider()
+    st.divider()
       #SEHEMU YA 2: UCHAMBUZI WA GHARAMA KWA TABS (Leo, Wiki, Mwezi, Mwaka)
 # -------------------------------------------------------------
-     if not df_exp.empty:
+    if not df_exp.empty:
       # Badilisha Column ya Date iwe datetime format na Cost Price iwe namba
         df_exp['Date'] = pd.to_datetime(df_exp['Date'])
         df_exp['Cost Price'] = pd.to_numeric(df_exp['Cost Price'], errors='coerce').fillna(0)
@@ -579,7 +578,7 @@ if check_password():
     ## Onyesha Tendo zote zilizorekodiwa
         st.subheader("📋 Orodha ya Gharama Zote")
         st.dataframe(df_exp.sort_values(by="Date", ascending=False), use_container_width=True)
-     else:
+    else:
       st.info("Bado hakuna data iliyorekodiwa kwenye sheet ya gharama.")
 
 
