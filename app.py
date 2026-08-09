@@ -486,101 +486,7 @@ if check_password():
      st.success("Mauzo yamehifadhiwa kikamilifu!")
      st.rerun() 
 
-     
-# 1. Soma Data kutoka kwenye worksheet ya "gharama"
-    df_exp = conn.read(worksheet="gharama")
-
-    st.title("💸 Usimamizi wa Gharama")
-
-# -------------------------------------------------------------
-# SEHEMU YA 1: FOMU YA KUINGIZA GHARAMA MPYA (MANUALLY)
-# -------------------------------------------------------------
-    with st.form("form_ingiza_gharama", clear_on_submit=True):
-         st.subheader("Ingiza Gharama Mpya")
-    
-         col_a, col_b = st.columns(2)
-         with col_a:
-            date_input = st.date_input("Tarehe", datetime.date.today())
-            cost_type_input = st.selectbox(
-            "Cost Type", 
-            ["Usafiri/Nauli", "Pango", "Luku/Umeme", "Chakula", "Mshahara", "Mengineyo"]
-        )
-         with col_b:
-             cost_price_input = st.number_input("Cost Price (TZS)", min_value=0, step=500)
-             subject_input = st.text_input("Subject (Maelezo ya Ziada)")
-
-         submit_btn = st.form_submit_button("Hifadhi Gharama")
-
-    
-    if submit_btn:
-        if cost_price_input > 0:
-        # Tengeneza record mpya kulingana na vichwa vyako vya Google Sheet
-           new_row = pd.DataFrame([{
-            "Date": str(date_input),
-            "Cost Type": cost_type_input,
-            "Cost Price": cost_price_input,
-            "Subject": subject_input
-          }])
-        
-        # Unganisha na kurekodi kwenye Google Sheet
-           df_exp = pd.concat([df_exp, new_row], ignore_index=True)
-           conn.update(worksheet="gharama", data=df_exp)
-        
-           st.success("Gharama imehifadhiwa vizuri kwenye Google Sheet!")
-           st.rerun()
-        else:
-         st.error("Tafadhali ingiza Cost Price iliyo kubwa kuliko 0.")
-
-    st.divider()
-      #SEHEMU YA 2: UCHAMBUZI WA GHARAMA KWA TABS (Leo, Wiki, Mwezi, Mwaka)
-# -------------------------------------------------------------
-    if not df_exp.empty:
-      # Badilisha Column ya Date iwe datetime format na Cost Price iwe namba
-        df_exp['Date'] = pd.to_datetime(df_exp['Date'])
-        df_exp['Cost Price'] = pd.to_numeric(df_exp['Cost Price'], errors='coerce').fillna(0)
-
-    # Tarehe, Wiki, Mwezi, na Mwaka wa Sasa
-        today = pd.Timestamp.now().date()
-        current_week = pd.Timestamp.now().isocalendar().week
-        current_month = pd.Timestamp.now().month
-        current_year = pd.Timestamp.now().year
-
-    # Hesabu za Gharama
-        cost_today = df_exp[df_exp['Date'].dt.date == today]['Cost Price'].sum()
-
-        cost_week = df_exp[
-         (df_exp['Date'].dt.isocalendar().week == current_week) & 
-         (df_exp['Date'].dt.year == current_year)
-     ]['Cost Price'].sum()
-
-        cost_month = df_exp[
-         (df_exp['Date'].dt.month == current_month) & 
-         (df_exp['Date'].dt.year == current_year)
-    ]['Cost Price'].sum()
-
-        cost_year = df_exp[df_exp['Date'].dt.year == current_year]['Cost Price'].sum()
-
-    # Onyesha kwenye Tabs
-        st.subheader("📊 Ripoti ya Gharama")
-        tab1, tab2, tab3, tab4 = st.tabs(["Leo", "Wiki Hii", "Mwezi Huu", "Mwaka Huu"])
-
-        with tab1:
-          st.metric(label="Gharama za Leo", value=f"Tsh {cost_today:,.2f}")
-
-        with tab2:
-          st.metric(label="Gharama za Wiki Hii", value=f"Tsh {cost_week:,.2f}")
-
-        with tab3:
-          st.metric(label="Gharama za Mwezi Huu", value=f"Tsh {cost_month:,.2f}")
-
-        with tab4:
-          st.metric(label="Gharama za Mwaka Huu", value=f"Tsh {cost_year:,.2f}")
-
-    ## Onyesha Tendo zote zilizorekodiwa
-        st.subheader("📋 Orodha ya Gharama Zote")
-        st.dataframe(df_exp.sort_values(by="Date", ascending=False), use_container_width=True)
-    else:
-      st.info("Bado hakuna data iliyorekodiwa kwenye sheet ya gharama.")
+  
 
 
        
@@ -1302,6 +1208,99 @@ if check_password():
              st.info(f"Hali:{status_sasa}")
     else:
        st.info("Hakuna oda za kufanyiwa marekebisho kwa sasa")
+
+
+
+    
+# 1. Soma Data kutoka kwenye worksheet ya "gharama"
+    df_exp = conn.read(worksheet="gharama")
+
+    st.title("💸 Usimamizi wa Gharama")
+
+# -------------------------------------------------------------
+# SEHEMU YA 1: FOMU YA KUINGIZA GHARAMA MPYA
+# -------------------------------------------------------------
+    with st.form("form_ingiza_gharama", clear_on_submit=True):
+       st.subheader("Ingiza Gharama Mpya")
+    
+       col_a, col_b = st.columns(2)
+       with col_a:
+         date_input = st.date_input("Tarehe", dt.date.today())
+        # Tumia text_input badala ya selectbox ili uweze kuandika chochote
+         cost_type_input = st.text_input("Cost Type (Aina ya Gharama)")
+       with col_b:
+         cost_price_input = st.number_input("Cost Price (TZS)", min_value=0, step=500)
+         subject_input = st.text_input("Subject (Maelezo ya Ziada)")
+
+       submit_btn = st.form_submit_button("Hifadhi Gharama")
+
+    if submit_btn:
+     if cost_price_input > 0 and cost_type_input.strip() != "":
+        new_row = pd.DataFrame([{
+            "Date": str(date_input),
+            "Cost Type": cost_type_input,
+            "Cost Price": cost_price_input,
+            "Subject": subject_input
+        }])
+        
+        df_exp = pd.concat([df_exp, new_row], ignore_index=True)
+        conn.update(worksheet="gharama", data=df_exp)
+        
+        st.success("Gharama imehifadhiwa kikamilifu!")
+        st.rerun()
+     else:
+        st.error("Tafadhali ingiza Cost Price na aina ya gharama.")
+
+    st.divider()
+
+# -------------------------------------------------------------
+# SEHEMU YA 2: FILTER YA TAREHE NA JUMLA YA GHARAMA
+# -------------------------------------------------------------
+    st.subheader("📋 Orodha na Chuo cha Filter ya Gharama")
+
+    if not df_exp.empty:
+    # Safisha Data
+      df_exp['Date'] = pd.to_datetime(df_exp['Date'])
+      df_exp['Cost Price'] = pd.to_numeric(df_exp['Cost Price'], errors='coerce').fillna(0)
+
+    # Date Picker ya kuchagua Range (Kuanzia - HADI)
+      min_date = df_exp['Date'].min().date()
+      max_date = df_exp['Date'].max().date()
+
+      col_f1, col_f2 = st.columns(2)
+      with col_f1:
+        start_date = st.date_input("Kuanzia Tarehe", min_date)
+      with col_f2:
+        end_date = st.date_input("Hadi Tarehe", max_date)
+
+    # Chukua data zilizo ndani ya Range ya Tarehe zilizochaguliwa
+      filtered_df = df_exp[
+        (df_exp['Date'].dt.date >= start_date) & 
+        (df_exp['Date'].dt.date <= end_date)
+     ].copy()
+
+    # Tengeneza Mstari wa Jumla (Total Row)
+      total_cost = filtered_df['Cost Price'].sum()
+
+    # Badilisha muundo wa Tarehe ili isionyeshe 00:00:00
+      filtered_df['Date'] = filtered_df['Date'].dt.strftime('%Y-%m-%d')
+
+    # Onyesha Dataframe
+      st.dataframe(filtered_df, use_container_width=True)
+
+    # Onyesha Jumla chini kwa Herufi Kubwa na Wazi
+      st.markdown(f"### 🧮 **Jumla ya Gharama (Kuanzia {start_date} hadi {end_date}):** `Tsh {total_cost:,.2f}`")
+
+    else:
+     st.info("Bado hakuna data kwenye sheet ya gharama.")
+
+
+
+
+
+
+
+
 
     st.divider()
     st.subheader("🔮 Frank AI: Profit Analysis")
