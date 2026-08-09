@@ -213,7 +213,7 @@ pesa_stoo,vitu_stoo=calculate_inventory_value()
 def check_password():
    if "welcomed" not in st.session_state:
       st.session_state["welcomed"]=False
-   #ARVISI
+   #JARVISI
    st.markdown("""
       
       
@@ -485,14 +485,104 @@ if check_password():
      conn.update(worksheet="mauzo", data=updated_mauzo)
      st.success("Mauzo yamehifadhiwa kikamilifu!")
      st.rerun() 
-  
+
+     
+# 1. Soma Data kutoka kwenye worksheet ya "gharama"
+     df_exp = conn.read(worksheet="gharama")
+
+     st.title("💸 Usimamizi wa Gharama")
+
+# -------------------------------------------------------------
+# SEHEMU YA 1: FOMU YA KUINGIZA GHARAMA MPYA (MANUALLY)
+# -------------------------------------------------------------
+     with st.form("form_ingiza_gharama", clear_on_submit=True):
+         st.subheader("Ingiza Gharama Mpya")
+    
+         col_a, col_b = st.columns(2)
+         with col_a:
+            date_input = st.date_input("Tarehe", datetime.now())
+            cost_type_input = st.selectbox(
+            "Cost Type", 
+            ["Usafiri/Nauli", "Pango", "Luku/Umeme", "Chakula", "Mshahara", "Mengineyo"]
+        )
+         with col_b:
+             cost_price_input = st.number_input("Cost Price (TZS)", min_value=0, step=500)
+             subject_input = st.text_input("Subject (Maelezo ya Ziada)")
+
+         submit_btn = st.form_submit_button("Hifadhi Gharama")
 
     
+     if submit_btn:
+        if cost_price_input > 0:
+        # Tengeneza record mpya kulingana na vichwa vyako vya Google Sheet
+           new_row = pd.DataFrame([{
+            "Date": str(date_input),
+            "Cost Type": cost_type_input,
+            "Cost Price": cost_price_input,
+            "Subject": subject_input
+          }])
+        
+        # Unganisha na kurekodi kwenye Google Sheet
+           df_exp = pd.concat([df_exp, new_row], ignore_index=True)
+           conn.update(worksheet="gharama", data=df_exp)
+        
+           st.success("Gharama imehifadhiwa vizuri kwenye Google Sheet!")
+           st.rerun()
+        else:
+         st.error("Tafadhali ingiza Cost Price iliyo kubwa kuliko 0.")
 
-     
-# 2. Sukuma data yote iliyohuishwa kwenda Google Sheets
-    # 2. Sukuma data yote iliyohuishwa kwenda Google Sheets
-     
+     st.divider()
+      #SEHEMU YA 2: UCHAMBUZI WA GHARAMA KWA TABS (Leo, Wiki, Mwezi, Mwaka)
+# -------------------------------------------------------------
+     if not df_exp.empty:
+      # Badilisha Column ya Date iwe datetime format na Cost Price iwe namba
+        df_exp['Date'] = pd.to_datetime(df_exp['Date'])
+        df_exp['Cost Price'] = pd.to_numeric(df_exp['Cost Price'], errors='coerce').fillna(0)
+
+    # Tarehe, Wiki, Mwezi, na Mwaka wa Sasa
+        today = pd.Timestamp.now().date()
+        current_week = pd.Timestamp.now().isocalendar().week
+        current_month = pd.Timestamp.now().month
+        current_year = pd.Timestamp.now().year
+
+    # Hesabu za Gharama
+        cost_today = df_exp[df_exp['Date'].dt.date == today]['Cost Price'].sum()
+
+        cost_week = df_exp[
+         (df_exp['Date'].dt.isocalendar().week == current_week) & 
+         (df_exp['Date'].dt.year == current_year)
+     ]['Cost Price'].sum()
+
+        cost_month = df_exp[
+         (df_exp['Date'].dt.month == current_month) & 
+         (df_exp['Date'].dt.year == current_year)
+    ]['Cost Price'].sum()
+
+        cost_year = df_exp[df_exp['Date'].dt.year == current_year]['Cost Price'].sum()
+
+    # Onyesha kwenye Tabs
+        st.subheader("📊 Ripoti ya Gharama")
+        tab1, tab2, tab3, tab4 = st.tabs(["Leo", "Wiki Hii", "Mwezi Huu", "Mwaka Huu"])
+
+        with tab1:
+          st.metric(label="Gharama za Leo", value=f"Tsh {cost_today:,.2f}")
+
+        with tab2:
+          st.metric(label="Gharama za Wiki Hii", value=f"Tsh {cost_week:,.2f}")
+
+        with tab3:
+          st.metric(label="Gharama za Mwezi Huu", value=f"Tsh {cost_month:,.2f}")
+
+        with tab4:
+          st.metric(label="Gharama za Mwaka Huu", value=f"Tsh {cost_year:,.2f}")
+
+    # Onyesha Tendo zote zilizorekodiwa
+        st.subheader("📋 Orodha ya Gharama Zote")
+        st.dataframe(df_exp.sort_values(by="Date", ascending=False), use_container_width=True)
+     else:
+      st.info("Bado hakuna data iliyorekodiwa kwenye sheet ya gharama.")
+
+
        
 
     # 2. Onyesha kwenye Sidebar (Pemben Kabisa)
@@ -1370,8 +1460,9 @@ if check_password():
             st.metric(label="📊 Asilimia ya Soko", value=f"{top_asilimia:.1f}%")
 
         st.info(f"Kipindi hiki, bidhaa kutoka kundi la **{top_jina}** ndizo zilizouzika kwa wingi zaidi, zikichukua **{top_asilimia:.1f}%** ya bidhaa zote zilizotoka stoo.")
-        
-          # Anzisha class ya FPDF
+                                                                                                 
+       
+        # Anzisha class ya FPDF
         pdf = FPDF()
         pdf.add_page()
         pdf.set_auto_page_break(auto=True, margin=15)
