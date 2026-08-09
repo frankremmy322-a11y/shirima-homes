@@ -576,7 +576,7 @@ if check_password():
         with tab4:
           st.metric(label="Gharama za Mwaka Huu", value=f"Tsh {cost_year:,.2f}")
 
-    # Onyesha Tendo zote zilizorekodiwa
+    ## Onyesha Tendo zote zilizorekodiwa
         st.subheader("📋 Orodha ya Gharama Zote")
         st.dataframe(df_exp.sort_values(by="Date", ascending=False), use_container_width=True)
      else:
