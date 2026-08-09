@@ -1225,7 +1225,7 @@ if check_password():
     
        col_a, col_b = st.columns(2)
        with col_a:
-         date_input = st.date_input("Tarehe", dt.date.today())
+         date_input = st.date_input("Tarehe", datetime.date.today())
         # Tumia text_input badala ya selectbox ili uweze kuandika chochote
          cost_type_input = st.text_input("Cost Type (Aina ya Gharama)")
        with col_b:
