@@ -1223,7 +1223,7 @@ if check_password():
 # SEHEMU YA 1: FOMU YA KUINGIZA GHARAMA MPYA
 # -------------------------------------------------------------
     with st.form("form_ingiza_gharama", clear_on_submit=True):
-       st.markdown("ssIngiza Gharama Mpya")
+       st.markdown("Ingiza Gharama Mpya")
     
        col_a, col_b = st.columns(2)
        with col_a:
