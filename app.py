@@ -500,7 +500,7 @@ if check_password():
     
          col_a, col_b = st.columns(2)
          with col_a:
-            date_input = st.date_input("Tarehe", datetime.now())
+            date_input = st.date_input("Tarehe", datetime.date.today())
             cost_type_input = st.selectbox(
             "Cost Type", 
             ["Usafiri/Nauli", "Pango", "Luku/Umeme", "Chakula", "Mshahara", "Mengineyo"]
@@ -530,6 +530,7 @@ if check_password():
            st.rerun()
         else:
          st.error("Tafadhali ingiza Cost Price iliyo kubwa kuliko 0.")
+
     st.divider()
       #SEHEMU YA 2: UCHAMBUZI WA GHARAMA KWA TABS (Leo, Wiki, Mwezi, Mwaka)
 # -------------------------------------------------------------
