@@ -876,6 +876,7 @@ if check_password():
 # 4. Onyesha Table
     if not df_filtered.empty:
     # Tunatengeneza column ya pesa iliyopambwa (Format)
+     df_filtered['Date'] = pd.to_datetime(df_filtered['Date']).dt.strftime('%Y-%m-%d')
      df_filtered['Total (Tsh)'] = df_filtered['Total'].apply(lambda x: f"{x:,.0f}")
     
     # Hapa tunachagua column zinazoendana na biashara yako (Bidhaa, Idadi, Bei, Jumla)
