@@ -1132,6 +1132,7 @@ if check_password():
            (df_orders['Status'].isin(status_filter))
 
     df_filtered = df_orders[mask]
+    df_filtered['Tarehe'] = pd.to_datetime(df_filtered['Tarehe']).dt.strftime('%Y-%m-%d')
    
     # 1. Badilisha hapa kuweka "Kinga" ya if
     if not df_filtered.empty:
@@ -1141,8 +1142,8 @@ if check_password():
        st.info("Hakuna Oda ya Kipindi iki")
                  
                  
-    st.dataframe(df_filtered.style.applymap(style_status,subset=['Status']), use_container_width=True)
-
+    #st.dataframe(df_filtered.style.applymap(style_status,subset=['Status']), use_container_width=True)
+    st.dataframe(df_filtered.style.applymap(style_status, subset=['Status']), use_container_width=True)
     #chagua order unayotaka
     if not df_orders.empty:
        target_customer = st.selectbox("Chagua mteja wa kumfanyia marekebisho:",df_orders['Mteja'].unique())
@@ -1221,7 +1222,7 @@ if check_password():
 # SEHEMU YA 1: FOMU YA KUINGIZA GHARAMA MPYA
 # -------------------------------------------------------------
     with st.form("form_ingiza_gharama", clear_on_submit=True):
-       st.markdown("Ingiza Gharama Mpya")
+       st.markdown("ssIngiza Gharama Mpya")
     
        col_a, col_b = st.columns(2)
        with col_a:
