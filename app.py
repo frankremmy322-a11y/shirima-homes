@@ -1349,7 +1349,7 @@ if check_password():
 # -------------------------------------------------------------
 # SEHEMU YA 2: ORODHA NA BIDHAA ZINAZOTAFUTWA ZAIDI
 # -------------------------------------------------------------
-    st.write("**📋 Orodha ya Bidhaa Zilizouliziwa na Wateja**")
+    st.write("📋 Orodha ya Bidhaa Zilizouliziwa na Wateja")
 
     if not df_wishlist.empty:
     # Format Tarehe
