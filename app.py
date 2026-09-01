@@ -45,6 +45,13 @@ except Exception as e:
     stoo_global = pd.DataFrame()
     orders_global = pd.DataFrame()
 
+
+# --- SOMA DATA KUTOKA WORKSHEET YA WISHLIST ---
+try:
+    df_wishlist = conn.read(worksheet="wishlist")
+except Exception:
+    df_wishlist = pd.DataFrame(columns=["Date", "Customer Name", "Phone", "Product Name", "Notes"])
+
 df = mauzo_global.copy()
 df_stoo = stoo_global.copy()
 df_orders = orders_global.copy()
@@ -1296,7 +1303,68 @@ if check_password():
     else:
      st.info("Bado hakuna data kwenye sheet ya gharama.")
 
+    
+    st.subheader("📝 Wishlist ya Wateja (Bidhaa Zisizopo Stoo)")
 
+# -------------------------------------------------------------
+# SEHEMU YA 1: FOMU YA KUINGIZA OMBI LA MTEJA
+# -------------------------------------------------------------
+    with st.form("form_wishlist", clear_on_submit=True):
+       st.write("**Ghadhibu Bidhaa Inayotafutwa na Mteja**")
+    
+       col_w1, col_w2 = st.columns(2)
+       with col_w1:
+          w_date = st.date_input("Tarehe", dt.date.today())
+          w_customer = st.text_input("Jina la Mteja")
+          w_phone = st.text_input("Namba ya Simu")
+    
+       with col_w2:
+          w_product = st.text_input("Bidhaa Anayoulizia")
+          w_notes = st.text_area("Maelezo ya Ziada (Rangi, Ukubwa, n.k.)")
+
+       submit_wishlist = st.form_submit_button("Hifadhi kwenye Wishlist")
+
+    if submit_wishlist:
+     if w_product.strip() != "":
+        new_wish = pd.DataFrame([{
+            "Date": str(w_date),
+            "Customer Name": w_customer,
+            "Phone": str(w_phone),
+            "Product Name": w_product,
+            "Notes": w_notes
+        }])
+        
+        df_wishlist = pd.concat([df_wishlist, new_wish], ignore_index=True)
+        conn.update(worksheet="wishlist", data=df_wishlist)
+        
+        st.success(f"Ombi la '{w_product}' limehifadhiwa kikamilifu!")
+        st.rerun()
+     else:
+        st.error("Tafadhali ingiza angalau Jina la Bidhaa inayotafutwa.")
+
+
+    
+     st.divider()
+
+# -------------------------------------------------------------
+# SEHEMU YA 2: ORODHA NA BIDHAA ZINAZOTAFUTWA ZAIDI
+# -------------------------------------------------------------
+    st.write("**📋 Orodha ya Bidhaa Zilizouliziwa na Wateja**")
+
+    if not df_wishlist.empty:
+    # Format Tarehe
+      df_wishlist['Date'] = pd.to_datetime(df_wishlist['Date']).dt.strftime('%Y-%m-%d')
+    
+    # Onyesha Tabless
+      st.dataframe(df_wishlist, use_container_width=True, hide_index=True)
+    
+    # Onyesha Uchanganuzi Mdogo wa Bidhaa Inayoongoza Kuuliziwa
+      top_requested = df_wishlist['Product Name'].value_counts().idxmax()
+      total_requests = df_wishlist['Product Name'].value_counts().max()
+    
+      st.info(f"💡 **Bidhaa inayoongozwa kuuliziwa:** {top_requested} (Mara {total_requests})")
+    else:
+      st.info("Bado hakuna ombi la bidhaa lililorekodiwa.")
 
 
 
