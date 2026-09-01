@@ -1314,7 +1314,7 @@ if check_password():
     
        col_w1, col_w2 = st.columns(2)
        with col_w1:
-          w_date = st.date_input("Tarehe", dt.date.today())
+          w_date = st.date_input("Tarehe", datetime.date.today())
           w_customer = st.text_input("Jina la Mteja")
           w_phone = st.text_input("Namba ya Simu")
     
