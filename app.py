@@ -331,7 +331,7 @@ def check_password():
     if st.session_state["password_correct"] and not st.session_state["welcomed"]:
 
       st.balloons()
-      st.toast("Access Granted Welcome Back, Mr Shrima.")
+      st.toast("Welcome Back Online, Mr Shrima.")
       st.session_state["welcomed"] = True
 
     
