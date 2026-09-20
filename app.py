@@ -1546,7 +1546,7 @@ if check_password():
 # 2. Kichwa cha Habari (Header) - Times New Roman
         pdf.set_font("Times", "B", 18)
         pdf.set_text_color(0, 0, 0)
-        pdf.cell(200, 10, txt="KWA SHIRIMA STORE - DODOMA", ln=True, align="C")
+        pdf.cell(200, 10, txt="KWA SHIRIMA STORE - ARUSHA", ln=True, align="C")
 
         pdf.set_font("Times", "B", 12)
         pdf.set_text_color(0,0, 0)
