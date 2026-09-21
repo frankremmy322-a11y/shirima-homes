@@ -156,6 +156,8 @@ def image_to_base64(image_path):
 def password_entered():
    if st.session_state.get("password")== st.secrets.get("PASSCODE"):
     st.session_state["password_correct"]=True
+    st.session_state["password"] = ""
+    st.rerun()
     #del st.session_state["password"]
    else:
     st.session_state["password_correct"]=False
