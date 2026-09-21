@@ -155,9 +155,9 @@ def image_to_base64(image_path):
 
 def password_entered():
    if st.session_state.get("password")== st.secrets.get("PASSCODE"):
-    st.session_state["password_correct"]=True
-    st.session_state["password"] = ""
-    st.rerun()
+    st.session_state["password_correct"] = True
+    st.rerun
+   
     #del st.session_state["password"]
    else:
     st.session_state["password_correct"]=False
@@ -220,6 +220,9 @@ pesa_stoo,vitu_stoo=calculate_inventory_value()
   
     
 def check_password():
+   if st.session_state.get("password_correct", False):
+      return True
+   
    if "welcomed" not in st.session_state:
       st.session_state["welcomed"]=False
    #JARVISI
