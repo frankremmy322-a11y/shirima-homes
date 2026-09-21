@@ -155,7 +155,7 @@ def image_to_base64(image_path):
 
 def password_entered():
    if st.session_state.get("password")== "shirima2026":
-       st.session_state["password_correct"] = True
+     st.session_state["password_correct"] = True
   
    
     #del st.session_state["password"]
@@ -220,8 +220,6 @@ pesa_stoo,vitu_stoo=calculate_inventory_value()
   
     
 def check_password():
-   
-   
    if "welcomed" not in st.session_state:
       st.session_state["welcomed"]=False
    #JARVISI
