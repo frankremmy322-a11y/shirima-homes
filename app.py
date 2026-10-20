@@ -1642,7 +1642,7 @@ if check_password():
 
 # --- FOOTER (Hii ikae hapa baada ya table) ---
         pdf.set_font("Times", "I", 8)
-        pdf.cell(0, 10, txt="This software created by Frank Shirima ", ln=True, align="C")
+        pdf.cell(0, 10, txt="This software created by Frank Remmy Mrosso ", ln=True, align="C")
         pdf.cell(0, 10, txt=" @all rights reserved", ln=True, align="C")
 
       
