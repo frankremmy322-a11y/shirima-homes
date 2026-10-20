@@ -300,7 +300,7 @@ def check_password():
 
    if "password_correct" not in st.session_state:
   
-      st.info("System Locked:Waiting for Athorization From Frank Shirima")
+      st.info("System Locked:Waiting for Athorization From Frank")
       st.text_input("ENTER ACCESSS CODE",type="password",on_change=password_entered,key="password")
       col1, col2, col3=st.columns([1,2,1])
       with col2:
@@ -333,7 +333,7 @@ def check_password():
     if st.session_state["password_correct"] and not st.session_state["welcomed"]:
 
       st.balloons()
-      st.toast("Welcome Back Online, Mr Shrima.")
+      st.toast("Welcome Back Online, Frank.")
       st.session_state["welcomed"] = True
 
     
@@ -351,8 +351,8 @@ if check_password():
   
 
 
- st.set_page_config(page_title="KWA SHIRIMA AI", layout="wide")
- st.title("📊 Prophet Dashboard  - KWA SHIRIMA Store")
+ st.set_page_config(page_title="FRANK'S AI", layout="wide")
+ st.title("📊 FRANK'S DECOR STORE")
 
 # 1. Pakia Dat
  df = mauzo_global.copy()
@@ -1548,7 +1548,7 @@ if check_password():
 # 2. Kichwa cha Habari (Header) - Times New Roman
         pdf.set_font("Times", "B", 18)
         pdf.set_text_color(0, 0, 0)
-        pdf.cell(200, 10, txt="KWA SHIRIMA STORE - ARUSHA", ln=True, align="C")
+        pdf.cell(200, 10, txt="FRANK'S DECOR STORE- MOSHI", ln=True, align="C")
 
         pdf.set_font("Times", "B", 12)
         pdf.set_text_color(0,0, 0)
